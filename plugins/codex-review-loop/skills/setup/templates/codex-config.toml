@@ -1,0 +1,7 @@
+# codex-review-loop:begin codex-config
+# Review defaults for the Codex review loop. Top-level keys: keep this block above
+# the first [table] header. Override per review with --model and --effort.
+review_model = "{{REVIEW_MODEL}}"
+model_reasoning_effort = "{{EFFORT}}"
+web_search = "live"
+# codex-review-loop:end codex-config

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "codex-review-loop",
+  "description": "Claude Code writes the code, the Codex CLI reviews it read-only against your request.",
+  "owner": {
+    "name": "codex-review-loop"
+  },
+  "plugins": [
+    {
+      "name": "codex-review-loop",
+      "description": "Claude Code implements; Codex reviews read-only against the task file; Claude verifies each finding, fixes P0-P2 with regression tests, holds P3 for you, and re-reviews, up to 3 rounds. Includes a setup command for the global rule files.",
+      "source": "./plugins/codex-review-loop",
+      "category": "development"
+    }
+  ]
+}

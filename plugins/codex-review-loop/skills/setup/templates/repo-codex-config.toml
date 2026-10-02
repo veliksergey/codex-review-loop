@@ -1,0 +1,10 @@
+# Per-repository Codex settings, at <repository root>/.codex/config.toml.
+# Codex loads this file only when the repository is trusted in
+# ~/.codex/config.toml ([projects.'<path>'] trust_level = "trusted").
+# Do not commit it unless the whole team wants these defaults.
+
+# Review model for this repository. Overrides review_model in ~/.codex/config.toml.
+review_model = "{{REVIEW_MODEL}}"
+
+# Optional: a different default effort for this repository.
+# model_reasoning_effort = "xhigh"
