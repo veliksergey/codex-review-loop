@@ -149,5 +149,4 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
 
 ## License
 
-No license has been chosen yet. Until one is added, all rights are reserved by the
-author.
+MIT. See [LICENSE](LICENSE).
