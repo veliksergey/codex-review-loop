@@ -42,10 +42,10 @@ finding in the code, and the final decision and the commit are yours.
 ## Install
 
 1. In Claude Code, add this repository as a plugin marketplace and install the
-   plugin. Replace `<owner>` with the GitHub account that holds this repository.
+   plugin.
 
    ```text
-   /plugin marketplace add <owner>/codex-review-loop
+   /plugin marketplace add veliksergey/codex-review-loop
    /plugin install codex-review-loop@codex-review-loop
    /reload-plugins
    ```
@@ -130,11 +130,15 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
 - Codex always runs with a read-only sandbox, forced on every run, because Codex
   defaults to a writable sandbox in repositories you have marked as trusted.
 - Claude fingerprints the working tree before and after every review and stops if
-  anything changed.
+  anything git can see changed: file status, staged and unstaged diffs, and the
+  contents of untracked files. Files git ignores are covered by the sandbox alone.
 - The loop never commits, pushes, or runs release scripts.
 - Review logs and task files live in `~/.claude/codex-reviews/<repo>/`, outside the
   repository, so they never become part of the next review.
-- The task file is sent to Codex in full. Keep secrets out of your requests.
+- Codex runs on your ChatGPT account, so the code it reads and the full task file
+  are sent to OpenAI. Claude starts the loop on its own after each implementation
+  task; say "skip review" for code that must not be sent. Keep secrets out of your
+  requests.
 
 ## Repository layout
 

@@ -2,7 +2,7 @@
 name: codex-loop
 description: Run the Codex (ChatGPT) code-review loop on the current uncommitted changes, on a branch compared with a base, or on specific files and folders; a target with no uncommitted changes is audited as existing code without a task file. Codex reviews read-only against the user's request in the task file; Claude verifies every finding, fixes valid P0-P2 findings with regression tests, lists P3 items for the user, and re-reviews, up to 3 rounds. Use after finishing an implementation task in a git repository, or when the user asks for a Codex review, a ChatGPT review, a second opinion, or a review loop.
 argument-hint: "[paths...] [--base <ref>] [--focus \"text\"] [--rounds N] [--model <slug>] [--effort <level>] [--report-only]"
-allowed-tools: Bash(codex exec review *), Bash(codex login status), Bash(git status *), Bash(git diff *), Bash(git rev-parse *), Bash(git branch *), Bash(git hash-object *), Bash(mkdir *), Bash(date *), Bash(grep *), Bash(wc *), Bash(cp *), Bash(ls *), Bash(cat *), Read, Write, Edit, Grep, Glob
+allowed-tools: Bash(codex exec review *), Bash(codex login status), Bash(git status *), Bash(git diff *), Bash(git rev-parse *), Bash(git branch *), Bash(git hash-object *), Bash(git -c core.quotePath=false ls-files *), Bash(mkdir *), Bash(date *), Bash(grep *), Bash(wc *), Bash(ls *), Read, Write, Edit, Grep, Glob
 ---
 
 # Codex review loop
@@ -197,13 +197,16 @@ Rules for the command:
   it does not.
 - Never add `-s workspace-write`, `-a`, `--approve-for-me`, or
   `--dangerously-bypass-approvals-and-sandbox`.
-- Prove the reviewer changed nothing. Before the run, record a baseline of three
+- Check that the reviewer changed nothing. Before the run, record a baseline of four
   hashes: `git status --porcelain --untracked-files=all | git hash-object --stdin`,
-  `git diff | git hash-object --stdin`, and
-  `git diff --cached | git hash-object --stdin`. `git hash-object` needs nothing
-  beyond git, so the same commands work on every platform. After the run, recompute
-  them. If any differs, stop the loop, show `git status --short`, and tell the user
-  that Codex wrote to the working tree.
+  `git diff | git hash-object --stdin`,
+  `git diff --cached | git hash-object --stdin`, and, for the contents of untracked
+  files,
+  `git -c core.quotePath=false ls-files --others --exclude-standard | git hash-object --stdin-paths | git hash-object --stdin`.
+  These need nothing beyond git, so the same commands work on every platform. After
+  the run, recompute them. If any differs, stop the loop, show `git status --short`,
+  and tell the user that Codex wrote to the working tree. Files git ignores are not
+  covered; the read-only sandbox is the guarantee for those.
 - If the `.log` contains `CreateProcessWithLogonW failed: 1385`, Codex could not
   start its persistent Windows sandbox shell and is retrying command by command.
   The review normally still completes. Mention it in the report and point to
@@ -246,7 +249,7 @@ table when you changed it.
 |---|---|
 | Valid, P0 / P1 / P2 | Fix it now with the smallest cohesive change. Add or extend a regression test that fails before the fix and passes after. |
 | Valid, P3 | Do not fix unasked. Put it on the "awaiting your decision" list in the final report. |
-| Invalid | Reject only with concrete evidence: a code path, test output, or primary documentation. Add a row to `docs/reviews/decisions.md` in the repository; create it from the repository template if it is missing. |
+| Invalid | Reject only with concrete evidence: a code path, test output, or primary documentation. Add a row to `docs/reviews/decisions.md` in the repository; if it is missing, create it from the setup skill's template, `${CLAUDE_SKILL_DIR}/../setup/templates/repo-decisions.md`. |
 | Outside the task's scope | Do not implement. List it for the user as a follow-up. |
 | Already recorded in `docs/reviews/decisions.md` | Do not fix. Mark it "disputed twice" and escalate to the user in the final report. |
 
@@ -288,8 +291,9 @@ Never commit, push, tag, or run release scripts as part of the loop.
 
 ## 8. Final report
 
-Archive the task file first: `cp "$LOG_DIR/task.md" "$LOG_DIR/$RUN-task.md"`. Leave
-`task.md` in place; the next task overwrites it. In audit mode do not copy it: write
+Archive the task file first: read `$LOG_DIR/task.md` and write its contents unchanged
+to `$LOG_DIR/$RUN-task.md` with the Write tool. Leave `task.md` in place; the next
+task overwrites it. In audit mode do not copy it: write
 `$LOG_DIR/$RUN-task.md` with one line, "Audit of <paths>, <date>: no task file used;
 task.md on disk described another task and was left untouched".
 

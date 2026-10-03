@@ -124,12 +124,10 @@ codex --version
 Start Claude Code in any folder and run:
 
 ```text
-/plugin marketplace add <owner>/codex-review-loop
+/plugin marketplace add veliksergey/codex-review-loop
 /plugin install codex-review-loop@codex-review-loop
 /reload-plugins
 ```
-
-`<owner>` is the GitHub account or organization that holds this repository.
 
 **Private repository.** Claude Code clones it with the git credentials already
 stored on your computer and never prompts for a password. Before the commands
@@ -444,8 +442,9 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
   from starting child processes. Codex then checks test claims by reading the code;
   Claude's own test run is the proof that the suite passes.
 - **The fingerprint check covers git's view of the tree:** file status, the
-  unstaged diff, and the staged diff. It does not hash the contents of files git
-  does not track yet. Codex's read-only sandbox is the main guarantee.
+  unstaged diff, the staged diff, and the contents of untracked files. It does not
+  hash files git ignores, such as `.env` or build output. Codex's read-only sandbox
+  is the main guarantee.
 - **Severity labels vary between runs.** Claude assigns the final label.
 - **Three rounds is a hard cap.** Fixes made in the last round have passed the
   checks but not another review. The final report says so.
