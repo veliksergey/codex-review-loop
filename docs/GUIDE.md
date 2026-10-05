@@ -386,16 +386,21 @@ and the review thread's first line contains `"subagent":"review"`.
 
 ## 13. Updating and removing
 
-**Update the plugin:**
+**Update the plugin.** In a terminal, refresh the list of versions, then update:
 
-```text
-/plugin marketplace update codex-review-loop
-/reload-plugins
-/codex-review-loop:setup
+```bash
+claude plugin marketplace update codex-review-loop
+claude plugin update codex-review-loop@codex-review-loop
 ```
 
-The setup run updates the rule blocks in your global files when the templates
-changed. For automatic updates: `/plugin`, **Marketplaces**, `codex-review-loop`,
+The first command alone only refreshes the list; the installed plugin keeps its old
+version until the second one runs. Then restart Claude Code, or run
+`/reload-plugins` in an open session, and run `/codex-review-loop:setup`, which
+updates the rule blocks in your global files when the templates changed.
+`claude plugin list` shows the installed version; compare it with the newest entry
+in `CHANGELOG.md`.
+
+For automatic updates: `/plugin`, **Marketplaces**, `codex-review-loop`,
 **Enable auto-update**. With a private repository, automatic updates need a stored
 credential (section 3) and otherwise fail quietly, leaving the installed version in
 place.

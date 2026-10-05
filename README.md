@@ -103,19 +103,28 @@ More in [docs/CHEATSHEET.md](docs/CHEATSHEET.md).
 
 ## Update
 
-```text
-/plugin marketplace update codex-review-loop
-/reload-plugins
-/codex-review-loop:setup
-```
+1. In a terminal, refresh the list of versions, then update the plugin:
 
-The last command updates the rule blocks in your global files if the templates
-changed, and reports "up to date" otherwise.
+   ```bash
+   claude plugin marketplace update codex-review-loop
+   claude plugin update codex-review-loop@codex-review-loop
+   ```
 
-Check the installed version in a terminal with `claude plugin list`: the line under
+   The first command alone does not update the installed plugin.
+
+2. Restart Claude Code, or run `/reload-plugins` in a session that is already open.
+
+3. Update the rule blocks in your global files:
+
+   ```text
+   /codex-review-loop:setup
+   ```
+
+   It reports "up to date" when the templates did not change.
+
+Check the installed version with `claude plugin list`: the line under
 `codex-review-loop@codex-review-loop` should match the newest version in
-[CHANGELOG.md](CHANGELOG.md). If it still shows an older one, run
-`claude plugin update codex-review-loop@codex-review-loop` and restart Claude Code.
+[CHANGELOG.md](CHANGELOG.md).
 
 To update automatically, open `/plugin`, go to **Marketplaces**, select
 `codex-review-loop`, and choose **Enable auto-update**.

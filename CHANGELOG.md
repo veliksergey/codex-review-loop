@@ -41,6 +41,9 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-10-05: update steps in the README, guide, and cheat sheet now use
+  `claude plugin update codex-review-loop@codex-review-loop` after refreshing the
+  marketplace; refreshing alone leaves the installed version unchanged.
 - 2026-10-05: README Update section explains how to check the installed version;
   this changelog.
 - 2026-10-05: cheat sheet gains a "When to use" column and a table of plugin and

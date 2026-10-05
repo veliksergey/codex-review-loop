@@ -40,7 +40,9 @@ separate modes; the other options combine with either.
 
 | Command | Where | What it does | When to use |
 |---|---|---|---|
-| `/plugin marketplace update codex-review-loop` | Claude Code | Fetches the newest version of this plugin. | To get a new version. Follow it with `/reload-plugins` and `/codex-review-loop:setup`. |
+| `claude plugin marketplace update codex-review-loop` | Terminal | Refreshes the list of available versions. Does not update the installed plugin. | First step of an update. |
+| `claude plugin update codex-review-loop@codex-review-loop` | Terminal | Installs the newest version from that list. | Second step of an update. Then restart Claude Code or run `/reload-plugins`, and run `/codex-review-loop:setup`. |
+| `claude plugin list` | Terminal | Shows installed plugins and their versions. | To confirm an update; compare with the newest entry in `CHANGELOG.md`. |
 | `/reload-plugins` | Claude Code | Loads installed or updated plugins into the running session. | Right after installing or updating, instead of starting a new session. |
 | `/plugin` | Claude Code | Shows installed plugins, marketplaces, and plugin errors. | A command is missing, or to turn on auto-update under **Marketplaces**. |
 | `claude plugin uninstall codex-review-loop@codex-review-loop` | Terminal | Removes the plugin. | To uninstall. The README lists the remaining cleanup. |
