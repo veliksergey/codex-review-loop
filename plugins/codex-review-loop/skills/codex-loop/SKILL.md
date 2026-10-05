@@ -2,7 +2,7 @@
 name: codex-loop
 description: Run the Codex (ChatGPT) code-review loop on the current uncommitted changes, on a branch compared with a base, or on specific files and folders; a target with no uncommitted changes is audited as existing code without a task file. Codex reviews read-only against the user's request in the task file; Claude verifies every finding, fixes valid P0-P2 findings with regression tests, lists P3 items for the user, and re-reviews, up to 3 rounds. Use after finishing an implementation task in a git repository, or when the user asks for a Codex review, a ChatGPT review, a second opinion, or a review loop.
 argument-hint: "[paths...] [--base <ref>] [--focus \"text\"] [--rounds N] [--model <slug>] [--effort <level>] [--report-only]"
-allowed-tools: Bash(codex exec review *), Bash(codex login status), Bash(git status *), Bash(git diff *), Bash(git rev-parse *), Bash(git branch *), Bash(git hash-object *), Bash(git -c core.quotePath=false ls-files *), Bash(mkdir *), Bash(date *), Bash(grep *), Bash(wc *), Bash(ls *), Read, Write, Edit, Grep, Glob
+allowed-tools: Bash(codex exec review *), Bash(codex login status), Bash(git status *), Bash(git diff *), Bash(git rev-parse *), Bash(git branch *), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(mkdir *), Bash(date *), Bash(grep *), Bash(wc *), Bash(ls *), Read, Write, Edit, Grep, Glob
 ---
 
 # Codex review loop
@@ -197,16 +197,16 @@ Rules for the command:
   it does not.
 - Never add `-s workspace-write`, `-a`, `--approve-for-me`, or
   `--dangerously-bypass-approvals-and-sandbox`.
-- Check that the reviewer changed nothing. Before the run, record a baseline of four
-  hashes: `git status --porcelain --untracked-files=all | git hash-object --stdin`,
-  `git diff | git hash-object --stdin`,
-  `git diff --cached | git hash-object --stdin`, and, for the contents of untracked
-  files,
-  `git -c core.quotePath=false ls-files --others --exclude-standard | git hash-object --stdin-paths | git hash-object --stdin`.
-  These need nothing beyond git, so the same commands work on every platform. After
-  the run, recompute them. If any differs, stop the loop, show `git status --short`,
-  and tell the user that Codex wrote to the working tree. Files git ignores are not
-  covered; the read-only sandbox is the guarantee for those.
+- Check that the reviewer changed nothing. Before the run, record the output of
+  `bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"`, run exactly as written: four hashes,
+  of the file status, the unstaged diff, the staged diff, and the contents of
+  untracked files. The script works from the repository root whatever the current
+  folder is, and needs nothing beyond bash and git. After the run, run it again and
+  compare. If it exits non-zero, stop the loop and report its error: a fingerprint
+  that failed proves nothing. If any hash differs, stop the loop, show
+  `git status --short`, and tell the user that Codex wrote to the working tree.
+  Files git ignores are not covered; the read-only sandbox is the guarantee for
+  those.
 - If the `.log` contains `CreateProcessWithLogonW failed: 1385`, Codex could not
   start its persistent Windows sandbox shell and is retrying command by command.
   The review normally still completes. Mention it in the report and point to
@@ -249,7 +249,7 @@ table when you changed it.
 |---|---|
 | Valid, P0 / P1 / P2 | Fix it now with the smallest cohesive change. Add or extend a regression test that fails before the fix and passes after. |
 | Valid, P3 | Do not fix unasked. Put it on the "awaiting your decision" list in the final report. |
-| Invalid | Reject only with concrete evidence: a code path, test output, or primary documentation. Add a row to `docs/reviews/decisions.md` in the repository; if it is missing, create it from the setup skill's template, `${CLAUDE_SKILL_DIR}/../setup/templates/repo-decisions.md`. |
+| Invalid | Reject only with concrete evidence: a code path, test output, or primary documentation. Add a row to `docs/reviews/decisions.md` in the repository; if it is missing, create it from the setup skill's template, `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/repo-decisions.md`. |
 | Outside the task's scope | Do not implement. List it for the user as a follow-up. |
 | Already recorded in `docs/reviews/decisions.md` | Do not fix. Mark it "disputed twice" and escalate to the user in the final report. |
 
