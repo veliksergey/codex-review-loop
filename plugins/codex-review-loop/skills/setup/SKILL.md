@@ -44,7 +44,8 @@ Each template is one block, fenced by markers so a rerun finds it:
 - Markdown: `<!-- codex-review-loop:begin <id> -->` to `<!-- codex-review-loop:end <id> -->`
 - TOML: `# codex-review-loop:begin <id>` to `# codex-review-loop:end <id>`
 
-For each block, decide by the first case that matches:
+For each block, decide by the first case that matches. "Identical" means identical
+after the settings rule below.
 
 | Found in the target | Action |
 |---|---|
@@ -60,6 +61,14 @@ For each block, decide by the first case that matches:
 | `shared-invariants` | `shared-invariants.md` | `~/.codex/AGENTS.md` | `# Shared engineering invariants` | first line of the file |
 | `codex-reviewer` | `codex-reviewer.md` | `~/.codex/AGENTS.md` | `## Reviewing code` | end of the file, after one blank line |
 | `codex-config` | `codex-config.toml` | `~/.codex/config.toml` | any of its keys at top level, see machine step 5 | before the first line that starts with `[`, or at the end when there is none |
+
+**Settings rule for `codex-config`.** Its key lines (`review_model`,
+`model_reasoning_effort`, `web_search`) hold the user's own settings, filled in by
+machine step 5. When comparing this block with its template, a key line matches the
+template whatever its value, and a key line that is missing also matches: the user
+left that key unset or keeps it elsewhere in the file. Compare only the marker and
+comment lines. When the user chooses "Update to the template", keep the block's key
+lines exactly as they are and replace only the marker and comment lines.
 
 When the user keeps an unmarked copy of `claude-rules` and it lacks a
 `## Codex review loop` section, say plainly that Claude will not run the loop on
@@ -180,7 +189,8 @@ Read-only: run nothing that writes and ask no write question.
 
 1. The prerequisites table from machine step 1.
 2. For each block in the table above: marked and up to date, marked but different
-   from the template, unmarked copy found, or missing.
+   from the template, unmarked copy found, or missing. Compare as described under
+   "Blocks and markers", including the settings rule for `codex-config`.
 3. `~/.codex/config.toml`: the top-level values of `review_model`,
    `model_reasoning_effort`, and `web_search`, and the `[windows]` `sandbox` value
    on Windows. Print only those lines.

@@ -5,6 +5,14 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.1.3 — 2026-10-05
+
+- `setup` no longer reports the `config.toml` review defaults as changed just
+  because they hold your own model, effort, and web search values. It compares
+  only the markers and comments of that block, so a rerun says "up to date"
+  instead of asking "Update / Keep mine" every time. Updating that block keeps
+  your values.
+
 ## 0.1.2 — 2026-10-05
 
 - The review's before/after check of the working tree now also covers the contents
