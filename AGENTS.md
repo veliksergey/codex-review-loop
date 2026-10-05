@@ -33,7 +33,9 @@ There is no build or lint. These are the checks:
 Users receive a change only when the plugin's version changes. Every change under
 `plugins/` raises `version` in `plugins/codex-review-loop/.claude-plugin/plugin.json`:
 patch for wording and fixes, minor for new behavior or a changed template. Set the
-version only there, never also in `marketplace.json`.
+version only there, never also in `marketplace.json`. Add an entry for the new
+version at the top of `CHANGELOG.md` in the same commit, and list documentation-only
+changes under "Documentation only".
 
 ## Invariants
 

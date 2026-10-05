@@ -110,8 +110,15 @@ More in [docs/CHEATSHEET.md](docs/CHEATSHEET.md).
 ```
 
 The last command updates the rule blocks in your global files if the templates
-changed, and reports "up to date" otherwise. To update automatically, open `/plugin`,
-go to **Marketplaces**, select `codex-review-loop`, and choose **Enable auto-update**.
+changed, and reports "up to date" otherwise.
+
+Check the installed version in a terminal with `claude plugin list`: the line under
+`codex-review-loop@codex-review-loop` should match the newest version in
+[CHANGELOG.md](CHANGELOG.md). If it still shows an older one, run
+`claude plugin update codex-review-loop@codex-review-loop` and restart Claude Code.
+
+To update automatically, open `/plugin`, go to **Marketplaces**, select
+`codex-review-loop`, and choose **Enable auto-update**.
 
 ## Uninstall
 
@@ -150,6 +157,7 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
 | `tests/` | Shell tests for this repository; not part of the installed plugin. |
 | `docs/GUIDE.md` | Full setup and usage guide. |
 | `docs/CHEATSHEET.md` | One-page reference. |
+| `CHANGELOG.md` | What changed in each version. |
 | `AGENTS.md` | Rules and checks for working on this repository. |
 
 ## License
