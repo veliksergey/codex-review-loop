@@ -77,6 +77,11 @@ finding in the code, and the final decision and the commit are yours.
 
 The step-by-step guide with expected output is [docs/GUIDE.md](docs/GUIDE.md).
 
+**Prefer not to install straight from GitHub?**
+[docs/manual-install/](docs/manual-install/README.md) shows how to review the plugin
+first and install it from your own copy, or set everything up by hand without the
+plugin system.
+
 ### Install from a private fork
 
 This repository is public, so the install above needs no credentials. If you run
@@ -172,6 +177,7 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
 | `tests/` | Shell tests for this repository; not part of the installed plugin. |
 | `docs/GUIDE.md` | Full setup and usage guide. |
 | `docs/CHEATSHEET.md` | One-page reference. |
+| [`docs/manual-install/`](docs/manual-install/README.md) | Installing from a copy you have reviewed, or by hand. |
 | `CHANGELOG.md` | What changed in each version. |
 | `AGENTS.md` | Rules and checks for working on this repository. |
 

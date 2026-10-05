@@ -256,7 +256,7 @@ table when you changed it.
 |---|---|
 | Valid, P0 / P1 / P2 | Fix it now with the smallest cohesive change. Add or extend a regression test that fails before the fix and passes after. |
 | Valid, P3 | Do not fix unasked. Put it on the "awaiting your decision" list in the final report. |
-| Invalid | Reject only with concrete evidence: a code path, test output, or primary documentation. Add a row to `docs/reviews/decisions.md` in the repository; if it is missing, create it from the setup skill's template, `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/repo-decisions.md`. With `--report-only`, do not touch the repository: keep the rejection and its evidence in the round's `-claude.md` only. |
+| Invalid | Reject only with concrete evidence: a code path, test output, or primary documentation. Add a row to `docs/reviews/decisions.md` in the repository; if it is missing, create it from the setup skill's template, `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/repo-decisions.md`; when that path does not resolve because the skill was installed by hand, outside a plugin, create it with a `# Review decisions` heading and the table header `\| Date \| Finding \| Severity claimed \| Decision \| Evidence \|`. With `--report-only`, do not touch the repository: keep the rejection and its evidence in the round's `-claude.md` only. |
 | Outside the task's scope | Do not implement. List it for the user as a follow-up. |
 | Already recorded in `docs/reviews/decisions.md` | Do not fix. Mark it "disputed twice" and escalate to the user in the final report. |
 

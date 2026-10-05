@@ -5,6 +5,12 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.1.5 — 2026-10-05
+
+- The review command works when copied by hand into `~/.claude/skills`, outside the
+  plugin system: when it needs to create `docs/reviews/decisions.md` and the setup
+  template is out of reach, it writes the heading and table header itself.
+
 ## 0.1.4 — 2026-10-05
 
 - `--report-only` now truly changes nothing in the repository: a rejected finding
@@ -55,6 +61,9 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-10-05: `docs/manual-install/` explains how to review the plugin and install
+  it without trusting GitHub: from your own clone, by copying the plugin folder, or
+  by hand. Linked from the README.
 - 2026-10-05: the repository is public — the README and guide now say the plain
   install needs no credentials, and the stored-credential steps apply only to a
   private fork or mirror. The README opens with why the loop uses a reviewer from
