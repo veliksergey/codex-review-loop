@@ -19,22 +19,35 @@ never commits. Full guide: [GUIDE.md](GUIDE.md).
 
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `/codex-loop` | Reviews all uncommitted changes, fixes P0-P2, re-reviews, up to 3 rounds. |
-| `/codex-loop --report-only` | One round, findings only, no edits. |
-| `/codex-loop <path> ...` | Reviews those files or folders as they are on disk. A path with no changes is an audit. |
-| `/codex-loop --base main` | Reviews the branch since `main`, plus uncommitted changes. |
-| `/codex-loop --focus "text"` | Adds a focus for the reviewer. Combines with any mode. |
-| `/codex-loop --rounds N` | Caps the rounds. Default 3. |
-| `/codex-loop --model <slug>` | Another review model, this review only. |
-| `/codex-loop --effort <level>` | Another reasoning effort, this review only. |
-| `/codex-review-loop:setup` | Installs or updates the rule blocks in your global files. |
-| `/codex-review-loop:setup repo` | Adds `decisions.md` and an `AGENTS.md` starter to the current repository. |
-| `/codex-review-loop:setup check` | Reports what is installed. Changes nothing. |
+| Command | What it does | When to use |
+|---|---|---|
+| `/codex-loop` | Reviews all uncommitted changes: staged, unstaged, and new files. Fixes P0-P2, re-reviews, up to 3 rounds. | After a task. Claude runs it on its own once the checks pass; run it yourself after editing code by hand. |
+| `/codex-loop --report-only` | One round, findings only, no edits. | To see what Codex thinks before anything is changed. |
+| `/codex-loop <path> ...` | Reviews those files or folders as they are on disk, plus uncommitted changes in them. A path with no changes is an audit. | One module at a time, or an audit of existing code: one top-level folder at a time, `--report-only` first. |
+| `/codex-loop --base main` | Reviews every commit on the branch since `main`, plus uncommitted changes. | Before a pull request. |
+| `/codex-loop --focus "text"` | Adds a focus for the reviewer. Combines with any mode. | Risky areas, for example `"token audience, replay, open redirects"`. |
+| `/codex-loop --rounds N` | Caps the rounds. Default 3. | Small changes or a tight usage budget: `--rounds 2`. |
+| `/codex-loop --model <slug>` | Another review model, this review only. | Authentication, authorization, payments, migrations, secrets, and the last pass before a pull request. |
+| `/codex-loop --effort <level>` | Another reasoning effort, this review only. | A harder look at risky code, for example `--effort xhigh`. |
+| `/codex-review-loop:setup` | Installs or updates the rule blocks in your global files, showing each change first. | Once per computer, and again after a plugin update. |
+| `/codex-review-loop:setup repo` | Adds `docs/reviews/decisions.md` and an `AGENTS.md` starter to the current repository. | Once per repository, before its first review. |
+| `/codex-review-loop:setup check` | Reports what is installed. Changes nothing. | When the loop does not start or something looks wrong. |
 
 `/codex-loop` is short for `/codex-review-loop:codex-loop`. Paths and `--base` are
 separate modes; the other options combine with either.
+
+## Plugin and Codex commands
+
+| Command | Where | What it does | When to use |
+|---|---|---|---|
+| `/plugin marketplace update codex-review-loop` | Claude Code | Fetches the newest version of this plugin. | To get a new version. Follow it with `/reload-plugins` and `/codex-review-loop:setup`. |
+| `/reload-plugins` | Claude Code | Loads installed or updated plugins into the running session. | Right after installing or updating, instead of starting a new session. |
+| `/plugin` | Claude Code | Shows installed plugins, marketplaces, and plugin errors. | A command is missing, or to turn on auto-update under **Marketplaces**. |
+| `claude plugin uninstall codex-review-loop@codex-review-loop` | Terminal | Removes the plugin. | To uninstall. The README lists the remaining cleanup. |
+| `codex login` | Terminal | Signs in to Codex with your ChatGPT account. | First setup, or when the loop reports that you are not logged in. |
+| `codex login status` | Terminal | Shows whether Codex is signed in. | Before a first review, or when a review fails to start. |
+| `codex resume <session-id>` | Terminal | Opens Codex's full session for a review round. The loop's report prints the id. | To see exactly what Codex read and ran. |
+| `codex update` | Terminal | Updates the Codex CLI, where the install supports self-update. On Windows, run it from PowerShell, not Git Bash. | Now and then, or when a model or option you expect is missing. |
 
 ## Severity
 
