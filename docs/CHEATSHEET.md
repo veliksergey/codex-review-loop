@@ -77,8 +77,10 @@ separate modes; the other options combine with either.
 
 ## Model choice, first match wins
 
-`--model` on the command, then the trusted repository's `.codex/config.toml`, then
-`~/.codex/config.toml`, then the account default. Use a stronger model or higher
+`--model` on the command, then `review_model` in the trusted repository's
+`.codex/config.toml`, then in `~/.codex/config.toml`, then the session model: the
+effective `model` setting (a trusted repository's config outranks `~/.codex/config.toml`),
+else the account default. Use a stronger model or higher
 effort for authentication, authorization, tenant scope, payments, migrations, and
 secrets.
 

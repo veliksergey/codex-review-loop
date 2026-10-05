@@ -93,7 +93,7 @@ found.
    irm https://claude.ai/install.ps1 | iex
    ```
 
-   Then run `claude` once and sign in in the browser.
+   Then run `claude` once and sign in through the browser.
 3. **Codex CLI.** Official instructions, including Windows, npm, and Homebrew:
    https://learn.chatgpt.com/docs/codex/cli. The macOS and Linux installer from that
    page:
@@ -129,9 +129,10 @@ Start Claude Code in any folder and run:
 /reload-plugins
 ```
 
-**Private repository.** Claude Code clones it with the git credentials already
-stored on your computer and never prompts for a password. Before the commands
-above, set up one of:
+**Private fork or mirror.** The repository above is public, so the install needs no
+GitHub credentials. Only if you install from a private fork or an internal mirror:
+Claude Code clones it with the git credentials already stored on your computer and
+never prompts for a password, so before the commands above, set up one of:
 
 - HTTPS: `gh auth login`, then `gh auth setup-git` (needs the GitHub CLI,
   https://cli.github.com).
@@ -288,7 +289,11 @@ The review model is chosen in this order, first match wins:
 2. `review_model` in the repository's `.codex/config.toml`, if the repository is
    trusted.
 3. `review_model` in `~/.codex/config.toml`.
-4. Your Codex account's default model.
+4. The session model: the effective `model` setting — in a trusted repository's
+   `.codex/config.toml` first, else in `~/.codex/config.toml` — and with no `model`
+   anywhere, your Codex account's default. OpenAI's configuration reference states
+   that without `review_model` a review runs on the current session model, and that
+   a trusted project's config outranks the user config (checked 2026-10-05).
 
 `review_model` applies to reviews only; your interactive Codex sessions keep their
 own `model` setting.

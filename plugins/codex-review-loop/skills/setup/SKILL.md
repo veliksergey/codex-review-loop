@@ -70,6 +70,11 @@ left that key unset or keeps it elsewhere in the file. Compare only the marker a
 comment lines. When the user chooses "Update to the template", keep the block's key
 lines exactly as they are and replace only the marker and comment lines.
 
+This rule covers template maintenance only. It never discards a choice the user
+just made: when machine step 5 collects a model, effort, or web search value that
+differs from the block's current line, show that line before and after and apply
+the change once the user approves, like any other edit.
+
 When the user keeps an unmarked copy of `claude-rules` and it lacks a
 `## Codex review loop` section, say plainly that Claude will not run the loop on
 its own until that section exists.
@@ -126,8 +131,10 @@ second `review_model` line breaks the file.
 1. Collect the values:
    - `review_model`. Read `~/.codex/models_cache.json` if it exists and offer the
      `slug` and `description` of each entry under `models`. The list depends on the
-     ChatGPT plan and the Codex version. The user may also choose "account
-     default", which leaves the key out.
+     ChatGPT plan and the Codex version. The user may also choose "session default",
+     which leaves the key out: reviews then run on the session model, meaning the
+     effective `model` setting (a trusted repository's `.codex/config.toml` outranks
+     `~/.codex/config.toml`), else the account default.
    - `model_reasoning_effort`. Offer the `effort` values that the chosen model's
      `supported_reasoning_levels` lists; without the cache, offer `low`, `medium`,
      `high`, and `xhigh`. Suggest `high`.
@@ -136,8 +143,11 @@ second `review_model` line breaks the file.
 2. For each key, look for it at top level outside the block, meaning before the
    first `[` header. If it is there, do not add it again: show its current value
    and ask whether to change that line in place.
-3. Fill `{{REVIEW_MODEL}}` and `{{EFFORT}}` in the template, drop the lines for
-   keys the user left unset or that already exist elsewhere, and apply the block.
+3. Block not present yet: fill `{{REVIEW_MODEL}}` and `{{EFFORT}}` in the template,
+   drop the lines for keys the user left unset or that already exist elsewhere, and
+   apply the block. Block already present: change only the key lines whose value
+   the user chose differently in this run, showing each line before and after; do
+   not re-ask about lines the user did not change.
 4. Never touch `[windows]`, `[projects.*]`, or any other table.
 
 ### Step 6. Log folder

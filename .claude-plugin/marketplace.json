@@ -3,7 +3,7 @@
   "name": "codex-review-loop",
   "description": "Claude Code writes the code, the Codex CLI reviews it read-only against your request.",
   "owner": {
-    "name": "codex-review-loop"
+    "name": "The codex-review-loop authors"
   },
   "plugins": [
     {

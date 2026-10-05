@@ -23,7 +23,7 @@ Arguments received: `$ARGUMENTS`
 | `--base <ref>` | Review every change on the current branch relative to `<ref>`, for example `main`, plus the uncommitted changes. | off |
 | `--focus "text"` | Extra focus for the reviewer, for example `"open redirects and token audience"`. | none |
 | `--rounds N` | Maximum review rounds. | 3 |
-| `--model <slug>` | Model for this review. Passed to Codex as both `-m <slug>` and `-c review_model="<slug>"`, so it beats the `review_model` default in any config file. | `review_model` from the repository's `.codex/config.toml` if the repository is trusted, else from `~/.codex/config.toml`, else the Codex account default |
+| `--model <slug>` | Model for this review. Passed to Codex as both `-m <slug>` and `-c review_model="<slug>"`, so it beats the `review_model` default in any config file. | `review_model` from the repository's `.codex/config.toml` if the repository is trusted, else from `~/.codex/config.toml`, else the session model: the effective `model` setting (a trusted repository's `.codex/config.toml` outranks `~/.codex/config.toml`), else the account default |
 | `--effort <level>` | Reasoning effort for this review, passed as `-c model_reasoning_effort="<level>"`. One of `low`, `medium`, `high`, `xhigh`; some models accept more levels such as `max` or `ultra`. | `model_reasoning_effort` from config, else the Codex default |
 | `--report-only` | One round, show the findings, change nothing. | off |
 
@@ -77,6 +77,11 @@ Stop and tell the user if one fails.
    - Missing otherwise, with changes in scope: ask the user for the request in one
      or two lines, or to say "no requirement". Without a task file, the prompt says
      so and Codex reviews scope only; the report must state this.
+
+   Audit mode, a "no requirement" answer, and a missing task file all make this a
+   **no-task run**: the whole loop uses the no-task line for `{{TASK}}` and never
+   writes to or archives `task.md`, which is absent or belongs to another task.
+   Steps 7 and 8 say what to do instead.
    - Before round 1, when a task file is used, its `## Handoff` section must be
      complete: files changed, tests added and what each proves, assumptions, check
      results, risks.
@@ -188,7 +193,9 @@ Rules for the command:
   `model:` shows the session model, which can differ from the review model when
   `review_model` is set in config. The review model is the `--model` value if given,
   else `review_model` from the repository's `.codex/config.toml`, else from
-  `~/.codex/config.toml`. Read those lines with `grep` when you report.
+  `~/.codex/config.toml`, else the session model from the `.log` header: without
+  `review_model`, a review runs on the session model (OpenAI configuration
+  reference, checked 2026-10-05). Read those lines with `grep` when you report.
 - Do not add `--ephemeral`; it would prevent `codex resume` later.
 - Always keep `-c 'sandbox_mode="read-only"'`. In a repository marked trusted in
   `~/.codex/config.toml`, Codex defaults to `workspace-write`, which would let the
@@ -249,7 +256,7 @@ table when you changed it.
 |---|---|
 | Valid, P0 / P1 / P2 | Fix it now with the smallest cohesive change. Add or extend a regression test that fails before the fix and passes after. |
 | Valid, P3 | Do not fix unasked. Put it on the "awaiting your decision" list in the final report. |
-| Invalid | Reject only with concrete evidence: a code path, test output, or primary documentation. Add a row to `docs/reviews/decisions.md` in the repository; if it is missing, create it from the setup skill's template, `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/repo-decisions.md`. |
+| Invalid | Reject only with concrete evidence: a code path, test output, or primary documentation. Add a row to `docs/reviews/decisions.md` in the repository; if it is missing, create it from the setup skill's template, `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/repo-decisions.md`. With `--report-only`, do not touch the repository: keep the rejection and its evidence in the round's `-claude.md` only. |
 | Outside the task's scope | Do not implement. List it for the user as a follow-up. |
 | Already recorded in `docs/reviews/decisions.md` | Do not fix. Mark it "disputed twice" and escalate to the user in the final report. |
 
@@ -266,7 +273,9 @@ Requirement findings follow the same table with these specifics:
 - Never edit the task file to make a finding disappear. It changes only to record a
   user decision or to correct a factual claim about the code.
 
-With `--report-only`, skip fixing and go to the final report after one round.
+With `--report-only`, the repository is not written at all: no fixes and no
+`docs/reviews/decisions.md` row. Triage into the round's `-claude.md` as usual, then
+go to the final report after one round.
 
 Write `<RUN>-round<N>-claude.md`: one row per finding with severity, decision, and
 the evidence or the change made, followed by a requirement checklist: one row per
@@ -280,8 +289,8 @@ single line "no acceptance criteria: audit of existing code".
   before the next round.
 - Update the task file: append decisions made while fixing, and bring the Handoff
   section up to date so the next round reviews current claims, not stale ones.
-  Not in audit mode: `task.md` belongs to another task, so record the decisions
-  made while fixing in the round's `-claude.md` instead.
+  In a no-task run, leave `task.md` alone and record the decisions made while
+  fixing in the round's `-claude.md` instead.
 - Start the next round when something was fixed and `N` is below `--rounds`.
 - Stop when the review reported no P0-P2 findings, when nothing changed this round,
   when `N` reached `--rounds`, when a finding was disputed twice, when Codex failed,
@@ -293,9 +302,11 @@ Never commit, push, tag, or run release scripts as part of the loop.
 
 Archive the task file first: read `$LOG_DIR/task.md` and write its contents unchanged
 to `$LOG_DIR/$RUN-task.md` with the Write tool. Leave `task.md` in place; the next
-task overwrites it. In audit mode do not copy it: write
-`$LOG_DIR/$RUN-task.md` with one line, "Audit of <paths>, <date>: no task file used;
-task.md on disk described another task and was left untouched".
+task overwrites it. In a no-task run do not copy it: write `$LOG_DIR/$RUN-task.md`
+with one line naming the scope and the reason, for example "Audit of <paths>,
+<date>: no task file used; task.md on disk belongs to another task and was left
+untouched" or "<date>: reviewed without a task file at the user's choice; task.md
+did not exist".
 
 Lead with the verdict: clean, stopped with open findings, or stopped on an error.
 Then:

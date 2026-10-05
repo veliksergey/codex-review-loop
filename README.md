@@ -5,6 +5,10 @@ you asked for. Claude checks every finding, fixes the valid ones with a regressi
 test, and asks Codex to look again, up to three rounds. You watch the whole exchange
 in the terminal, and nothing is committed until you commit it.
 
+The point is an independent second opinion on every change: a reviewer from a
+different vendor does not share the author's blind spots, and it judges the code
+against your request, not against what the author claims about it.
+
 This repository is a Claude Code plugin. It installs two commands:
 
 | Command | What it does |
@@ -37,7 +41,7 @@ finding in the code, and the final decision and the commit are yours.
 | Codex CLI, signed in | Needs a ChatGPT plan that includes Codex. Install: https://learn.chatgpt.com/docs/codex/cli. Sign in with `codex login`. |
 | git | Every reviewed project must be a git repository. |
 | Windows only: Git for Windows | Gives Claude Code its Bash tool, which the review command needs. https://git-scm.com/downloads/win |
-| A private copy of this repository only | Git access to it from your computer; see [Install from a private repository](#install-from-a-private-repository). |
+| Stored git credentials | Only if you install from a private fork of this repository; the public repository needs none. See [Install from a private fork](#install-from-a-private-fork). |
 
 ## Install
 
@@ -73,15 +77,17 @@ finding in the code, and the final decision and the commit are yours.
 
 The step-by-step guide with expected output is [docs/GUIDE.md](docs/GUIDE.md).
 
-### Install from a private repository
+### Install from a private fork
 
-Claude Code clones the repository with your own git credentials and never asks for
-a password, so the credentials must already be stored. Pick one:
+This repository is public, so the install above needs no credentials. If you run
+the loop from a private fork or an internal mirror instead, Claude Code clones it
+with your own git credentials and never asks for a password, so they must already
+be stored. Pick one:
 
 - **HTTPS with the GitHub CLI**: run `gh auth login`, then `gh auth setup-git`.
 - **SSH**: a GitHub SSH key loaded in `ssh-agent`, with github.com in `known_hosts`.
 
-Then run the commands in step 1. Source:
+Then run the commands in step 1 with your fork's `owner/repo`. Source:
 https://code.claude.com/docs/en/plugins/host-marketplace#grant-access-to-a-private-marketplace
 
 ## Everyday use

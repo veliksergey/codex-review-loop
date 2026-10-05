@@ -5,6 +5,20 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.1.4 — 2026-10-05
+
+- `--report-only` now truly changes nothing in the repository: a rejected finding
+  is recorded in the round log instead of `docs/reviews/decisions.md`.
+- A review without a task file — an audit, a missing `task.md`, or your "no
+  requirement" answer — no longer updates or archives `task.md`, which is absent or
+  belongs to another task.
+- Rerunning `setup` with a different model or effort choice now shows and applies
+  the change; before, the comparison rule silently kept the old values.
+- The documented model fallback is correct: without `review_model`, a review runs
+  on the session model (`model` in the config, else the account default), per
+  OpenAI's configuration reference.
+- The plugin's author reads "The codex-review-loop authors", matching the license.
+
 ## 0.1.3 — 2026-10-05
 
 - `setup` no longer reports the `config.toml` review defaults as changed just
@@ -41,6 +55,10 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-10-05: the repository is public — the README and guide now say the plain
+  install needs no credentials, and the stored-credential steps apply only to a
+  private fork or mirror. The README opens with why the loop uses a reviewer from
+  a different vendor. The guide and cheat sheet state the session-model fallback.
 - 2026-10-05: update steps in the README, guide, and cheat sheet now use
   `claude plugin update codex-review-loop@codex-review-loop` after refreshing the
   marketplace; refreshing alone leaves the installed version unchanged.
