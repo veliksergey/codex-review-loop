@@ -5,6 +5,13 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.1.6 — 2026-10-06
+
+- Prepared for Anthropic's plugin directory: `plugin.json` gains `homepage`,
+  `repository`, and an author `url`, and the plugin folder gains its own `README.md`,
+  which the directory shows as the listing and which describes what the plugin
+  runs, sends, and writes.
+
 ## 0.1.5 — 2026-10-05
 
 - The review command works when copied by hand into `~/.claude/skills`, outside the

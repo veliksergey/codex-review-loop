@@ -12,6 +12,7 @@ Code implements; the Codex CLI reviews read-only. Users install it with
 |---|---|
 | `.claude-plugin/marketplace.json` | Marketplace catalog with one entry, `codex-review-loop`. |
 | `plugins/codex-review-loop/.claude-plugin/plugin.json` | Plugin manifest, including `version`. |
+| `plugins/codex-review-loop/README.md` | The plugin-folder README. Anthropic's directory shows it as the listing; it must stay at least 40 words outside code blocks and describe what the plugin runs, sends, and writes. |
 | `plugins/codex-review-loop/skills/codex-loop/` | The review loop skill, the review prompt sent to Codex, the task file template, and `fingerprint.sh`, the before/after working-tree check. |
 | `plugins/codex-review-loop/skills/setup/` | The setup skill and the blocks it installs in users' global files. |
 | `tests/` | Shell tests. Not shipped with the plugin. |
@@ -43,7 +44,8 @@ changes under "Documentation only".
   addresses, internal host or machine names, ticket numbers, private repository
   names, or absolute paths from a real computer. Examples use placeholders such as
   `<repo>`, `src/auth`. The one exception is the repository owner's GitHub account,
-  `veliksergey`, in the install command `veliksergey/codex-review-loop`.
+  `veliksergey`, in the install command `veliksergey/codex-review-loop` and in the
+  repository URLs in `plugin.json`.
 - **Portable shell commands.** Commands in skills must work in bash on macOS, on
   Linux, and in Git Bash on Windows. Prefer git built-ins over platform tools: for
   example `git hash-object --stdin`, not `sha1sum`. No GNU-only flags.
@@ -64,6 +66,17 @@ changes under "Documentation only".
 - **Facts are sourced.** A claim about Claude Code or Codex behavior in the docs or
   skills comes from the official documentation or from a run that was actually
   observed. Mark anything else as unverified.
+
+## Directory listing
+
+The plugin is submitted to Anthropic's directory from the developer portal at
+https://claude.ai/directory/manage, with `plugins/codex-review-loop` as the plugin
+path and `main` as the tracked branch. The directory rescans `main` on every push
+and on a schedule, and the docs require `version` in `plugin.json` to rise with every
+release, so the release rule above applies to the listing too. Before pushing a
+release, validate against the checklist at https://claude.com/docs/plugins/pre-submission-checklist:
+no hooks or MCP servers are declared today, so the checks that apply are the
+manifest fields, the plugin README, the license, and file names and sizes.
 
 ## Branches
 

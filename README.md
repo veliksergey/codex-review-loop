@@ -174,6 +174,7 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
 | `.claude-plugin/marketplace.json` | The marketplace catalog: one plugin. |
 | `plugins/codex-review-loop/skills/codex-loop/` | The review loop: `SKILL.md`, the review prompt sent to Codex, and the task file template. |
 | `plugins/codex-review-loop/skills/setup/` | The setup command and the rule templates it installs. |
+| `plugins/codex-review-loop/README.md` | Short README inside the plugin folder, shown by Anthropic's plugin directory. |
 | `tests/` | Shell tests for this repository; not part of the installed plugin. |
 | `docs/GUIDE.md` | Full setup and usage guide. |
 | `docs/CHEATSHEET.md` | One-page reference. |
