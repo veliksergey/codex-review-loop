@@ -5,6 +5,16 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.2.0 — 2026-10-06
+
+- Fixes to your code now follow your normal permission settings instead of being
+  pre-approved by the review command. The command pre-approves only the exact
+  git, Codex, and helper commands it runs, and file writes only under
+  `~/.claude/codex-reviews/` and to `docs/reviews/decisions.md`. Setup pre-approves
+  only its checks, the log folder, and the backup copies of the files it edits.
+  Anthropic's directory validator asked for both narrowings.
+- A plugin icon at `.claude-plugin/icon.png`.
+
 ## 0.1.6 — 2026-10-06
 
 - Prepared for Anthropic's plugin directory: `plugin.json` gains `homepage`,

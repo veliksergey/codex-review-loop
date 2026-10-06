@@ -3,7 +3,7 @@ name: setup
 description: Set up or check the Claude-writes, Codex-reviews loop on this computer, or prepare the current git repository for it. Backs up each file, shows the exact change, and writes only after the user approves. Never commits.
 argument-hint: "[machine | repo | check]"
 disable-model-invocation: true
-allowed-tools: Bash(git --version), Bash(git rev-parse *), Bash(git status *), Bash(claude --version), Bash(codex --version), Bash(codex login status), Bash(date *), Bash(ls *), Bash(cat *), Bash(grep *), Bash(cp *), Bash(mkdir *), Read, Glob, Grep
+allowed-tools: Bash(git --version), Bash(git rev-parse --show-toplevel), Bash(claude --version), Bash(codex --version), Bash(codex login status), Bash(date +%Y%m%d-%H%M%S), Bash(mkdir -p ~/.claude/codex-reviews), Bash(cp "$HOME/.claude/CLAUDE.md" *), Bash(cp "$HOME/.codex/AGENTS.md" *), Bash(cp "$HOME/.codex/config.toml" *), Bash(cp "AGENTS.md" *), Read, Glob, Grep
 ---
 
 # Set up the Codex review loop
@@ -31,8 +31,10 @@ These apply to every file this skill writes, in every mode.
    "Skip", and, where the user already has their own text, "Keep mine". Without the
    tool, ask in plain text and wait for the answer. Write only after "Apply".
 4. Back up an existing file before its first write in this run:
-   `cp "<file>" "<file>.bak-codex-review-loop-$(date +%Y%m%d-%H%M%S)"`. A file
-   that did not exist needs no backup.
+   `cp "<file>" "<file>.bak-codex-review-loop-$(date +%Y%m%d-%H%M%S)"`, with `<file>`
+   written exactly as `$HOME/.claude/CLAUDE.md`, `$HOME/.codex/AGENTS.md`,
+   `$HOME/.codex/config.toml`, or `AGENTS.md`. A file that did not exist needs no
+   backup.
 5. Write with Edit for an existing file, Write for a new one. Never change text
    outside the block you showed.
 6. Re-read the file and confirm the block appears exactly once.
