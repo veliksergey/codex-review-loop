@@ -2,7 +2,7 @@
 name: codex-loop
 description: Run the Codex (ChatGPT) code-review loop on the current uncommitted changes, on a branch compared with a base, or on specific files and folders; a target with no uncommitted changes is audited as existing code without a task file. Codex reviews read-only against the user's request in the task file; Claude verifies every finding, fixes valid P0-P2 findings with regression tests, lists P3 items for the user, and re-reviews, up to 3 rounds. Use after finishing an implementation task in a git repository, or when the user asks for a Codex review, a ChatGPT review, a second opinion, or a review loop.
 argument-hint: "[paths...] [--base <ref>] [--focus \"text\"] [--rounds N] [--model <slug>] [--effort <level>] [--report-only]"
-allowed-tools: Bash(codex exec review *), Bash(codex login status), Bash(git status *), Bash(git diff *), Bash(git rev-parse --show-toplevel), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(mkdir -p "$LOG_DIR"), Bash(date +%Y%m%d-%H%M%S), Bash(grep "session id:" *), Bash(grep -F *), Bash(wc -l), Bash(ls -l *), Read, Edit(~/.claude/codex-reviews/**), Edit(docs/reviews/decisions.md), Grep, Glob
+allowed-tools: Bash(codex login status), Bash(git rev-parse --show-toplevel), Bash(git status --short --untracked-files=all), Bash(git diff), Bash(git diff --cached), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(mkdir -p "$LOG_DIR"), Bash(date +%Y%m%d-%H%M%S), Bash(wc -l), Read, Edit(~/.claude/codex-reviews/**), Edit(docs/reviews/decisions.md), Grep, Glob
 ---
 
 # Codex review loop

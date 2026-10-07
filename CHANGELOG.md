@@ -5,6 +5,14 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.2.2 — 2026-10-07
+
+- No shell grant ends in a wildcard any more. The review command pre-approves only
+  fixed commands such as `git diff` and the fingerprint script; the Codex run,
+  `git diff` with a base, and the setup backups now follow your permission
+  settings, which offer "don't ask again" per command. Anthropic's directory
+  held 0.2.1 for "broad shell access in allowed-tools".
+
 ## 0.2.1 — 2026-10-06
 
 - A Privacy section in the plugin README and the repository README: the authors

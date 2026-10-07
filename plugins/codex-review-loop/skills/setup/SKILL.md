@@ -3,7 +3,7 @@ name: setup
 description: Set up or check the Claude-writes, Codex-reviews loop on this computer, or prepare the current git repository for it. Backs up each file, shows the exact change, and writes only after the user approves. Never commits.
 argument-hint: "[machine | repo | check]"
 disable-model-invocation: true
-allowed-tools: Bash(git --version), Bash(git rev-parse --show-toplevel), Bash(claude --version), Bash(codex --version), Bash(codex login status), Bash(date +%Y%m%d-%H%M%S), Bash(mkdir -p ~/.claude/codex-reviews), Bash(cp "$HOME/.claude/CLAUDE.md" *), Bash(cp "$HOME/.codex/AGENTS.md" *), Bash(cp "$HOME/.codex/config.toml" *), Bash(cp "AGENTS.md" *), Read, Glob, Grep
+allowed-tools: Bash(git --version), Bash(git rev-parse --show-toplevel), Bash(claude --version), Bash(codex --version), Bash(codex login status), Bash(date +%Y%m%d-%H%M%S), Bash(mkdir -p ~/.claude/codex-reviews), Read, Glob, Grep
 ---
 
 # Set up the Codex review loop
