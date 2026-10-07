@@ -5,6 +5,12 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.2.1 — 2026-10-06
+
+- A Privacy section in the plugin README and the repository README: the authors
+  collect nothing, the only data leaving the machine is what the Codex CLI sends
+  to OpenAI under the user's own account, and where to report concerns.
+
 ## 0.2.0 — 2026-10-06
 
 - Fixes to your code now follow your normal permission settings instead of being

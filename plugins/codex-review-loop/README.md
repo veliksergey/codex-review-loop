@@ -46,6 +46,17 @@ https://github.com/veliksergey/codex-review-loop
 - **Never** commits, pushes, or runs release scripts. The loop fingerprints the
   working tree before and after every review and stops if anything changed.
 
+## Privacy
+
+The plugin's authors collect nothing: the plugin runs no service of its own, sends
+nothing to its authors, and contains no analytics. The only data that leaves your
+machine is what the Codex CLI sends to OpenAI under your own ChatGPT account: the
+code under review and the task file. OpenAI's handling of that data is governed by
+its privacy policy, https://openai.com/policies/privacy-policy, and by your ChatGPT
+plan. Review logs stay in `~/.claude/codex-reviews/` on your machine until you delete
+them. For product or security concerns, open an issue in the repository:
+https://github.com/veliksergey/codex-review-loop/issues
+
 Full guide, cheat sheet, changelog, and manual install options:
 https://github.com/veliksergey/codex-review-loop
 

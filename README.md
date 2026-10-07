@@ -167,6 +167,16 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
   task; say "skip review" for code that must not be sent. Keep secrets out of your
   requests.
 
+## Privacy
+
+The plugin's authors collect nothing: there is no service, no telemetry, and
+nothing sent to the authors. The only data that leaves your machine is what the
+Codex CLI sends to OpenAI under your own ChatGPT account, the code under review and
+the task file, governed by OpenAI's privacy policy at
+https://openai.com/policies/privacy-policy and by your plan. Review logs stay in
+`~/.claude/codex-reviews/` until you delete them. Report product or security concerns
+through the repository's issues.
+
 ## Repository layout
 
 | Path | Contents |
