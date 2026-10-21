@@ -5,6 +5,33 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.2.4 — 2026-10-21
+
+- The fingerprint records untracked links by where they point and never follows
+  them. Before, it read the files behind a link: a link to a folder, or a broken
+  link, made the fingerprint fail on macOS and Linux, and on Windows git lists a
+  junction's contents as if it were a folder. A link moved to another folder with
+  identical contents went unnoticed.
+- The check also covers these cases:
+  - links to empty folders;
+  - links inside new untracked folders;
+  - a junction that replaces a tracked folder;
+  - file and link names with spaces, which can no longer make two different trees
+    look the same.
+- Links inside ignored folders stay uncovered, like every ignored file. A `!` rule
+  that un-ignores a path is honored. What lies behind a link is never part of the
+  check.
+- An untracked file's executable bit is now part of the fingerprint, because git
+  commits it.
+
+## 0.2.3 — 2026-10-21
+
+- The before/after fingerprint now sees every content change, whatever your git
+  config says. Before, it hashed plain `git diff` output, which follows external diff
+  tools (`diff.external`) and textconv drivers. A tool that prints nothing could hide
+  an edit to a file that was already modified, so a reviewer's write could go
+  unnoticed. The diffs now use `--no-ext-diff --no-textconv --binary --full-index`.
+
 ## 0.2.2 — 2026-10-07
 
 - No shell grant ends in a wildcard any more. The review command pre-approves only

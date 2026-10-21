@@ -207,8 +207,9 @@ Rules for the command:
 - Check that the reviewer changed nothing. Before the run, record the output of
   `bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"`, run exactly as written: four hashes,
   of the file status, the unstaged diff, the staged diff, and the contents of
-  untracked files. The script works from the repository root whatever the current
-  folder is, and needs nothing beyond bash and git. After the run, run it again and
+  untracked files, with untracked links recorded by where they point. The script
+  works from the repository root whatever the current folder is, and needs only bash,
+  git, and the standard `find`, `readlink`, and `sort`. After the run, run it again and
   compare. If it exits non-zero, stop the loop and report its error: a fingerprint
   that failed proves nothing. If any hash differs, stop the loop, show
   `git status --short`, and tell the user that Codex wrote to the working tree.

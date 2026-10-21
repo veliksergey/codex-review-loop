@@ -452,7 +452,9 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
   from starting child processes. Codex then checks test claims by reading the code;
   Claude's own test run is the proof that the suite passes.
 - **The fingerprint check covers git's view of the tree:** file status, the
-  unstaged diff, the staged diff, and the contents of untracked files. It does not
+  unstaged diff, the staged diff, and the contents of untracked files, with untracked
+  links recorded by where they point rather than followed. Diff tools set in your git
+  config do not affect it. It does not
   hash files git ignores, such as `.env` or build output. Codex's read-only sandbox
   is the main guarantee.
 - **Severity labels vary between runs.** Claude assigns the final label.

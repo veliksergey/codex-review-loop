@@ -158,7 +158,8 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
   defaults to a writable sandbox in repositories you have marked as trusted.
 - Claude fingerprints the working tree before and after every review and stops if
   anything git can see changed: file status, staged and unstaged diffs, and the
-  contents of untracked files. Files git ignores are covered by the sandbox alone.
+  contents of untracked files, with links recorded by where they point. Files git
+  ignores are covered by the sandbox alone.
 - The loop never commits, pushes, or runs release scripts.
 - Review logs and task files live in `~/.claude/codex-reviews/<repo>/`, outside the
   repository, so they never become part of the next review.
