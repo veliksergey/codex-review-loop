@@ -27,8 +27,9 @@ This repository is a Claude Code plugin. It installs two commands:
    Codex reports findings labeled P0 (worst) to P3. Claude prints them verbatim.
 4. Claude verifies each finding against the code. Valid P0-P2 findings are fixed
    with a regression test. P3 items wait for your decision. Rejected findings are
-   recorded with evidence in the repository's `docs/reviews/decisions.md`, so Codex
-   does not raise them again.
+   recorded with evidence in the repository's `docs/reviews/decisions.md`. The next
+   review checks each new row once against the code, and Codex does not raise a
+   finding again while its evidence holds.
 5. Claude re-runs the checks and the review, at most three rounds, then reports. The
    report starts with a verdict that says how far the result was verified, from
    `verified` to `review failed`, and with every finding Claude rejected or
@@ -170,6 +171,11 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
   review use your own Codex tools.
 - After each review the loop shows what the reviewer used. It stops if no sandboxed
   command ran, or if a tool that should be off was called.
+- A change must not rewrite the rules it is judged by. When it edits `AGENTS.md`,
+  `CLAUDE.md`, a `.codex` folder, or `docs/reviews/decisions.md`, the loop names those
+  files to you and tells the reviewer to apply their committed versions and to review
+  the edits. A decision in the task file explains intent; the reviewer is told that it
+  does not excuse a defect.
 - Web search has two limits, both observed on 2026-11-13. Codex's `cached` and `live`
   settings made no difference to what the search tool fetched, so treat web search as
   on or off. And the loop keeps web search by naming Codex's search connector with an

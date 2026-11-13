@@ -2,7 +2,7 @@
 name: codex-loop
 description: Run the Codex (ChatGPT) code-review loop on the current uncommitted changes, on a branch compared with a base, or on specific files and folders; a target with no uncommitted changes is audited as existing code without a task file. Codex reviews read-only against the user's request in the task file; Claude verifies every finding, fixes valid P0-P2 findings with regression tests, lists P3 items for the user, and re-reviews, up to 3 rounds. Use after finishing an implementation task in a git repository, or when the user asks for a Codex review, a ChatGPT review, a second opinion, or a review loop.
 argument-hint: "[paths...] [--base <ref>] [--focus \"text\"] [--rounds N] [--model <slug>] [--effort <level>] [--web cached|live|off] [--allow-tools] [--report-only]"
-allowed-tools: Bash(codex login status), Bash(git rev-parse --show-toplevel), Bash(git status --short --untracked-files=all), Bash(git diff), Bash(git diff --cached), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" live), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" off), Bash(bash "${CLAUDE_SKILL_DIR}/round-facts.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/log-dir.sh"), Bash(date +%Y%m%d-%H%M%S), Bash(wc -l), Read, Edit(~/.claude/codex-reviews/**), Edit(docs/reviews/decisions.md), Grep, Glob
+allowed-tools: Bash(codex login status), Bash(git rev-parse --show-toplevel), Bash(git status --short --untracked-files=all), Bash(git diff), Bash(git diff --cached), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" live), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" off), Bash(bash "${CLAUDE_SKILL_DIR}/round-facts.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/log-dir.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/instruction-changes.sh"), Bash(date +%Y%m%d-%H%M%S), Bash(wc -l), Read, Edit(~/.claude/codex-reviews/**), Edit(docs/reviews/decisions.md), Grep, Glob
 ---
 
 # Codex review loop
@@ -134,7 +134,7 @@ Tell the user which you chose and that a review usually takes one to several min
 
 ### Build the prompt
 
-Read `${CLAUDE_SKILL_DIR}/review-prompt.md` and replace three placeholders:
+Read `${CLAUDE_SKILL_DIR}/review-prompt.md` and replace four placeholders:
 
 `{{SCOPE}}`, by mode:
 
@@ -171,7 +171,10 @@ Target files and folders, relative to the repository root:
 Review the current contents of the target as it exists on disk. Start with
 `git status --short --untracked-files=all -- <target>`, `git diff -- <target>`, and
 `git diff --cached -- <target>` to see what changed recently, then read the whole
-files, because a defect in unchanged lines that the change relies on still counts.
+files. Defects that already exist in the target are in scope, and a finding does not
+have to overlap a recent change: the rules in your built-in guidelines against
+flagging existing bugs, and for findings that overlap the diff, do not apply to this
+review.
 ```
 
 `{{FOCUS}}`: the focus text, or `none`.
@@ -179,6 +182,16 @@ files, because a defect in unchanged lines that the change relies on still count
 `{{TASK}}`: the full contents of `$LOG_DIR/task.md`, or, in audit mode or when the
 user chose to proceed without one, the single line
 `No task file was provided. Review the scope only and say so in your summary.`
+
+`{{INSTRUCTIONS}}`: the output of `bash "${CLAUDE_SKILL_DIR}/instruction-changes.sh"`,
+run exactly as written before every round, pasted unchanged; in branch mode run it with
+the ref as its one argument. It lists the instruction files the change edits:
+`AGENTS.md`, `AGENTS.override.md`, and `CLAUDE.md` in any folder, anything under a
+`.codex` folder, and `docs/reviews/decisions.md`. It prints `none` when there are none.
+The prompt tells the reviewer to apply the committed version of each listed file, to
+review the edit, and to check once every new row of `docs/reviews/decisions.md`. When
+files are listed, name them to the user before the round. If the script exits non-zero,
+stop and report its message.
 
 Write the result to `$LOG_DIR/$RUN-round$N-prompt.md` with the Write tool. Confirm
 no `{{` remains.
@@ -336,9 +349,10 @@ not that it was read in full or reviewed.
 Treat each finding as a testable claim. Open the cited file and lines, trace the
 code path, or reproduce it with a test before deciding. Convert Codex's absolute
 paths to repository-relative paths in your table. Codex's severity label is a
-proposal: in testing the same fact was rated P1 in one run and P2 in another. Set
-the severity yourself from the scale in `review-prompt.md`. The triage table keeps
-both labels, Codex's and yours.
+proposal: in testing the same fact was rated P1 in one run and P2 in another, and on
+2026-11-13 a defect that deleted stored data was rated P1 in every seeded review,
+although the scale makes it P0 and the prompt says so. Set the severity yourself from the scale
+in `review-prompt.md`. The triage table keeps both labels, Codex's and yours.
 
 | Outcome | Rule |
 |---|---|
@@ -353,8 +367,8 @@ Requirement findings follow the same table with these specifics:
 - `(criterion N)` not met: a valid one is P1. Fix the code, not the criterion.
 - `(beyond request)`: valid when the change adds behavior the request and the
   task file's decisions do not cover. Remove the addition, or, if the user asked for
-  it in conversation, quote the user's words in the task file's Decisions section
-  and reject the finding with that evidence.
+  it in conversation, quote the user's words in the task file's Decisions section,
+  marked `[user, <date>]`, and reject the finding with that evidence.
 - `(handoff)` claim not supported: fix the thing the claim was about, for example
   add the missing test. If the claim was wrong but the code is right, correct the
   Handoff section and say so in the triage table.

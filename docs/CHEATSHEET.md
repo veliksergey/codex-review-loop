@@ -13,7 +13,9 @@ never commits. Full guide: [GUIDE.md](GUIDE.md).
 3. Give Claude the task. Read the acceptance criteria it prints and correct them if
    they are wrong.
 4. Claude implements, runs the checks, and starts the loop. Say "skip review" to
-   skip it.
+   skip it. If the change edits `AGENTS.md`, `CLAUDE.md`, a `.codex` folder, or
+   `docs/reviews/decisions.md`, Claude names those files before each round; the
+   reviewer is told to apply their committed versions.
 5. Read the rounds and the final report. It starts with a verdict and with the
    findings Claude overrode. Decide on the P3 items.
 6. Read the diff, then commit yourself.
@@ -62,8 +64,11 @@ separate modes; the other options combine with either.
 | P1 | Definite bug or weakness, or an unmet criterion | Fixed, with test |
 | P2 | Probable bug, missing guard or test, contract break, false handoff claim | Fixed, with test |
 | P3 | Improvement or style | Listed for your decision |
-| Rejected | Disproved with evidence | Row in `docs/reviews/decisions.md` |
+| Rejected | Disproved with evidence | Row in `docs/reviews/decisions.md`, checked once by the next review |
 | Disputed twice | Same finding after a rejection | Escalated to you |
+
+Codex's label is a proposal and Claude sets the final one. In tests the reviewer rated
+P0 defects P1. A decision in the task file explains intent; it does not excuse a defect.
 
 ## Verdict
 

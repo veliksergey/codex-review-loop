@@ -13,7 +13,7 @@ Code implements; the Codex CLI reviews read-only. Users install it with
 | `.claude-plugin/marketplace.json` | Marketplace catalog with one entry, `codex-review-loop`. |
 | `plugins/codex-review-loop/.claude-plugin/plugin.json` | Plugin manifest, including `version`. |
 | `plugins/codex-review-loop/README.md` | The plugin-folder README. Anthropic's directory shows it as the listing; it must stay at least 40 words outside code blocks and describe what the plugin runs, sends, and writes. |
-| `plugins/codex-review-loop/skills/codex-loop/` | The review loop skill, the review prompt sent to Codex, the task file template, the triage file template, and five scripts: `fingerprint.sh`, the before/after working-tree check; `log-dir.sh`, which prints the log folder and stops when another repository with the same folder name already uses it; `mcp-off-flags.sh`, which prints the flag that turns the configured MCP servers off; `tool-flags.sh`, which builds the flags that limit the reviewer's tools and checks them against Codex before a review starts; and `round-facts.sh`, which reads what the reviewer ran from Codex's log and identifies the round by its prompt and commit. |
+| `plugins/codex-review-loop/skills/codex-loop/` | The review loop skill, the review prompt sent to Codex, the task file template, the triage file template, and six scripts: `fingerprint.sh`, the before/after working-tree check; `instruction-changes.sh`, which lists the instruction files a change edits; `log-dir.sh`, which prints the log folder and stops when another repository with the same folder name already uses it; `mcp-off-flags.sh`, which prints the flag that turns the configured MCP servers off; `tool-flags.sh`, which builds the flags that limit the reviewer's tools and checks them against Codex before a review starts; and `round-facts.sh`, which reads what the reviewer ran from Codex's log and identifies the round by its prompt and commit. |
 | `plugins/codex-review-loop/skills/setup/` | The setup skill and the blocks it installs in users' global files. |
 | `tests/` | Shell tests. Not shipped with the plugin. |
 | `docs/` | User documentation. `docs/reviews/decisions.md` records rejected review findings. |
@@ -28,6 +28,7 @@ There is no build or lint. These are the checks:
 | Plugin manifest and skills | `claude plugin validate --strict plugins/codex-review-loop` | Exit 0 |
 | Plugin loads with both skills | `claude --plugin-dir ./plugins/codex-review-loop plugin details codex-review-loop` | Lists `Skills (2)  codex-loop, setup` |
 | Fingerprint script | `bash tests/fingerprint.test.sh` | Exit 0, prints `all passed` |
+| Instruction files script | `bash tests/instruction-changes.test.sh` | Exit 0, prints `all passed` |
 | Log folder script | `bash tests/log-dir.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | Round facts script | `bash tests/round-facts.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | MCP flags script | `bash tests/mcp-off-flags.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
@@ -70,7 +71,9 @@ changes under "Documentation only".
   web search, its plugins, and its MCP servers turned off unless the user passes
   `--allow-tools`; the loop stops a review in which no sandboxed command ran or a
   tool that should be off was called; the loop fingerprints the tree before and after
-  each round; nothing in this plugin commits, pushes, or installs software; logs
+  each round; the reviewer is told which instruction files a change edits, to apply
+  their committed versions, and that a decision in the task file does not excuse a
+  defect; nothing in this plugin commits, pushes, or installs software; logs
   live outside the reviewed repository; setup writes only after the user approves
   the exact change and backs up the file first.
 - **Facts are sourced.** A claim about Claude Code or Codex behavior in the docs or

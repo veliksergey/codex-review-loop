@@ -10,7 +10,7 @@ loop; they differ in how much of the plugin system you use.
 
 ## What you would be trusting
 
-The plugin is the folder `plugins/codex-review-loop/`, 22 files:
+The plugin is the folder `plugins/codex-review-loop/`, 23 files:
 
 | Files | What they are |
 |---|---|
@@ -26,6 +26,7 @@ The plugin is the folder `plugins/codex-review-loop/`, 22 files:
 | `skills/codex-loop/mcp-off-flags.sh` | A script that asks Codex for its configured MCP servers, with `codex mcp list`, and prints the flag that turns them off for a review. It changes nothing. |
 | `skills/codex-loop/tool-flags.sh` | A script that builds the flags that limit the reviewer's tools, asks Codex with `codex mcp list` and `codex debug prompt-input` whether they do, and prints them. It changes nothing. |
 | `skills/codex-loop/round-facts.sh` | A script that reads Codex's log of a review and prints what the reviewer ran. It changes nothing. |
+| `skills/codex-loop/instruction-changes.sh` | A script of read-only `git` commands that lists the instruction files your change edits, such as `AGENTS.md`, so that the reviewer can be told to apply their committed versions. It changes nothing. |
 | `skills/setup/SKILL.md` | Instructions Claude follows when you run the setup command. |
 | `skills/setup/templates/` | Eight plain-text templates that setup pastes into your config files. |
 | `LICENSE` | MIT. |
@@ -60,7 +61,7 @@ When those commands run:
    such as `C:\src`, or run
    `git -c core.longpaths=true clone https://github.com/veliksergey/codex-review-loop.git`.
 
-2. List what the plugin contains. Expect the 22 files above:
+2. List what the plugin contains. Expect the 23 files above:
 
    ```bash
    git ls-files plugins/
@@ -72,7 +73,7 @@ When those commands run:
    grep -rnE '"(hooks|mcpServers|lspServers|monitors)"' .claude-plugin plugins
    ```
 
-4. Read the five scripts and the two `SKILL.md` files. The templates are short
+4. Read the six scripts and the two `SKILL.md` files. The templates are short
    enough to skim.
 
 5. Note the commit you reviewed, so you can compare against it later:

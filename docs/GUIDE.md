@@ -204,7 +204,8 @@ It offers three things, each shown before it is written:
 
 1. **`docs/reviews/decisions.md`.** The table where Claude records findings it
    rejected, with the evidence. Codex reads it before each review and does not raise
-   those findings again.
+   those findings again. A row that is not committed yet is Claude's own claim: the
+   next review checks it once against the code.
 2. **`AGENTS.md`.** Both tools read this file. The loop needs it to name the check
    commands: typecheck, lint, test, build. Setup fills them only from what the
    repository states, such as `package.json` scripts, and writes `none` for a check
@@ -392,11 +393,35 @@ Every review receives three layers:
 | Layer | Content |
 |---|---|
 | Codex's built-in review guidelines | Compiled into the Codex CLI. They give way to more specific instructions. |
-| The loop's review prompt | `plugins/codex-review-loop/skills/codex-loop/review-prompt.md`, filled per round with the scope, your `--focus`, and the whole task file. It puts security first, asks for unmet criteria as P1, additions beyond the request as P2 or P3, and unsupported handoff claims as P2. |
+| The loop's review prompt | `plugins/codex-review-loop/skills/codex-loop/review-prompt.md`, filled per round with the scope, your `--focus`, the whole task file, and the list of instruction files the change edits. It puts security first, asks for unmet criteria as at least P1, additions beyond the request as P2 or P3, and unsupported handoff claims as P2. |
 | `AGENTS.md` | `~/.codex/AGENTS.md` and the repository's own `AGENTS.md`. |
 
 The output format is Codex's own: a summary, then `Full review comments:` with one
 `[Pn]` finding per item. A prompt cannot change that format.
+
+The prompt also keeps the change from deciding how it is judged:
+
+- **A decision does not excuse a defect.** The task file lists the decisions made
+  while implementing, each marked as yours, with the date and your words quoted, or as
+  the implementer's. The reviewer is told that a decision explains what was intended,
+  and to report one that contradicts your request, a criterion, or a repository rule,
+  or that creates a security, data-loss, or correctness defect.
+- **A change must not rewrite the rules it is judged by.** Before each round the loop
+  lists the instruction files the change edits: `AGENTS.md`, `AGENTS.override.md`, and
+  `CLAUDE.md` in any folder, anything under a `.codex` folder, and
+  `docs/reviews/decisions.md`. It names them to you, and the prompt tells the reviewer
+  to apply the committed version of each, to review the edit like code, and to check
+  each new row of `decisions.md` once against the code.
+- **One severity scale.** The prompt says that its P0 to P3 scale replaces the one
+  built into Codex, and that P0 covers an exploitable flaw or data loss even when a
+  specific input is needed.
+- **Existing defects count in an audit.** When you review chosen files or folders, the
+  reviewer is told that defects already in them are in scope, changed recently or not.
+
+Observed on 2026-11-13 in seeded reviews of a made-up repository, one run each: the
+reviewer reported a defect that a decision excused, one that an edited `AGENTS.md`
+allowed, one that a false row in `decisions.md` covered, and an existing defect in an
+unchanged file. One run is not a measurement.
 
 ### What the reviewer can use
 
@@ -561,7 +586,15 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
   what the reviewer's commands printed, so a printed line can look like a tool call.
   The loop lists the log line of every call it counted, and Claude reads each one
   before deciding that a tool that should be off was not called.
-- **Severity labels vary between runs.** Claude assigns the final label.
+- **Severity labels vary between runs, and the reviewer avoids P0.** Observed on
+  2026-11-13: in every seeded review that tried it, the reviewer rated a defect that
+  deleted stored data, and one that let a user delete another user's data, P1, although
+  the prompt's scale makes both P0 and says so. Claude assigns the final label from the scale, and
+  the triage note keeps both labels.
+- **Codex still loads the instruction files from disk.** The loop cannot change which
+  `AGENTS.md` Codex reads. It tells the reviewer which instruction files the change
+  edits and to apply their committed versions; whether the reviewer does so is up to
+  the reviewer.
 - **Three rounds is a hard cap.** Fixes made in the last round have passed the
   checks but not another review. The final report's verdict is then `fixes not
   re-reviewed`.

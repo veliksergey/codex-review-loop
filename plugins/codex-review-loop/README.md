@@ -62,6 +62,11 @@ https://github.com/veliksergey/codex-review-loop
 - **Reports** one of five verdicts, from `verified` to `review failed`, so a result
   that rests on Claude's own checks or on fixes no review has seen does not read as
   verified.
+- **Guards the rules of the review.** When a change edits `AGENTS.md`, `CLAUDE.md`, a
+  `.codex` folder, or `docs/reviews/decisions.md`, the loop names those files to you
+  and tells the reviewer to apply their committed versions, to review the edits, and
+  to check new rejection rows once. The reviewer is also told that a decision in the
+  task file does not excuse a defect.
 
 ## Privacy
 

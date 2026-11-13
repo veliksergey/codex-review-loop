@@ -5,6 +5,35 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.5.0 — 2026-11-13
+
+Run `/codex-review-loop:setup` after updating: the block of rules it installs for
+Claude changed, and setup shows the change before it writes anything.
+
+- A decision in the task file no longer shields a defect. The review prompt said that
+  decisions "are intentional" and must not be flagged. It now says that a decision
+  explains intent, and tells the reviewer to report one that contradicts the request,
+  a criterion, or a repository rule, or that creates a security, data-loss, or
+  correctness defect.
+- Decisions are marked as yours, with the date and your words quoted, or as the
+  implementer's, in the task template and in the rules setup installs.
+- A change can no longer quietly rewrite the rules it is judged by. Before each round
+  the new `instruction-changes.sh` lists the instruction files the change edits:
+  `AGENTS.md`, `AGENTS.override.md`, and `CLAUDE.md` in any folder, anything under a
+  `.codex` folder, and `docs/reviews/decisions.md`. The loop names them to you, and
+  the prompt tells the reviewer to apply their committed versions, to review the
+  edits, and to check each new row of `decisions.md` once against the code.
+- The prompt says that its severity scale replaces the one built into Codex, and that
+  P0 covers an exploitable flaw or data loss even when a specific input is needed. An
+  unmet criterion is at least P1 and no longer "P1 by default".
+- When you review chosen files or folders, the reviewer is told that defects already
+  in them are in scope, changed recently or not.
+- What testing showed, in seeded reviews of a made-up repository, one run per case:
+  the reviewer reported a defect that a decision excused, one that an edited
+  `AGENTS.md` allowed, one that a false row in `decisions.md` covered, and an existing
+  defect in an unchanged file. It did not use P0: a defect that deleted stored data was
+  rated P1 every time it was tried. Claude sets the final label from the scale.
+
 ## 0.4.0 — 2026-11-13
 
 - The final report starts with one of five verdicts: `verified`, `clean with

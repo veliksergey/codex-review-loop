@@ -19,8 +19,13 @@ later clarifications from the user as dated quotes>
 <what the request does not ask for, or "none stated">
 
 ## Decisions during implementation
-- <decision> — <reason>. Appended as each decision is made, including during
-  review rounds.
+- [user, <yyyy-mm-dd>] "<the user's words, copied exactly>" — <what follows from them>
+- [implementer] <decision> — <reason>
+
+<one line per decision, appended as each is made, including during review rounds.
+Mark a decision as the user's only with the date and a quote of what the user said;
+every other decision is the implementer's. A decision explains what was intended. It
+does not excuse a defect, and the reviewer is told so.>
 
 ## Handoff
 Files: <changed files, repository-relative>

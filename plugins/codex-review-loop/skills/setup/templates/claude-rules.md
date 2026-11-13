@@ -43,8 +43,10 @@ explicit request overrides both defaults.
   with files, tests and what each proves, assumptions, check results, and risks.
   The `codex-loop` skill folder holds the full template. Show the criteria to the
   user before coding starts. Append each implementation decision with its reason as
-  it is made. Complete the Handoff section before running the loop. The loop sends
-  the file to Codex, which checks the change against it.
+  it is made. Mark it `[user, <date>]` with the user's words quoted when the user
+  decided it, and `[implementer]` otherwise; a decision explains intent and does not
+  excuse a defect. Complete the Handoff section before running the loop. The loop
+  sends the file to Codex, which checks the change against it.
 - Default scope is all uncommitted changes. Use the paths, `--base`, or
   `--focus` the user gives; a folder or file named in the request is a scope.
 - Fix policy: verify every finding first. Fix valid P0-P2 findings with a
