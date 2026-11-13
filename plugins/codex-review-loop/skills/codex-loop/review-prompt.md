@@ -65,9 +65,11 @@ output.
 4. Contracts and compatibility: public exports, persisted schemas, API shapes,
    migrations, and the consumers that depend on them.
 5. Up-to-date practice: where the code uses a framework or library API, confirm
-   against the installed version and current official documentation (web search is
-   allowed). Cite the source and the date checked. Do not recommend a dependency
-   change without checking the installed version in the manifest and lockfile.
+   against the installed version and, when you have a web search tool, current
+   official documentation. Cite the source and the date checked. Without a web search
+   tool, say in your summary which claims you could not check against current
+   documentation. Do not recommend a dependency change without checking the installed
+   version in the manifest and lockfile.
 6. Maintainability: duplication of an existing shared contract, needless
    abstraction, or complexity, only when it changes risk or clarity.
 </rubric>

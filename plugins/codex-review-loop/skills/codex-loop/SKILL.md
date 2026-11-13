@@ -1,8 +1,8 @@
 ---
 name: codex-loop
 description: Run the Codex (ChatGPT) code-review loop on the current uncommitted changes, on a branch compared with a base, or on specific files and folders; a target with no uncommitted changes is audited as existing code without a task file. Codex reviews read-only against the user's request in the task file; Claude verifies every finding, fixes valid P0-P2 findings with regression tests, lists P3 items for the user, and re-reviews, up to 3 rounds. Use after finishing an implementation task in a git repository, or when the user asks for a Codex review, a ChatGPT review, a second opinion, or a review loop.
-argument-hint: "[paths...] [--base <ref>] [--focus \"text\"] [--rounds N] [--model <slug>] [--effort <level>] [--report-only]"
-allowed-tools: Bash(codex login status), Bash(git rev-parse --show-toplevel), Bash(git status --short --untracked-files=all), Bash(git diff), Bash(git diff --cached), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(mkdir -p "$LOG_DIR"), Bash(date +%Y%m%d-%H%M%S), Bash(wc -l), Read, Edit(~/.claude/codex-reviews/**), Edit(docs/reviews/decisions.md), Grep, Glob
+argument-hint: "[paths...] [--base <ref>] [--focus \"text\"] [--rounds N] [--model <slug>] [--effort <level>] [--web cached|live|off] [--allow-tools] [--report-only]"
+allowed-tools: Bash(codex login status), Bash(git rev-parse --show-toplevel), Bash(git status --short --untracked-files=all), Bash(git diff), Bash(git diff --cached), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" live), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" off), Bash(bash "${CLAUDE_SKILL_DIR}/round-facts.sh"), Bash(mkdir -p "$LOG_DIR"), Bash(date +%Y%m%d-%H%M%S), Bash(wc -l), Read, Edit(~/.claude/codex-reviews/**), Edit(docs/reviews/decisions.md), Grep, Glob
 ---
 
 # Codex review loop
@@ -25,7 +25,13 @@ Arguments received: `$ARGUMENTS`
 | `--rounds N` | Maximum review rounds. | 3 |
 | `--model <slug>` | Model for this review. Passed to Codex as both `-m <slug>` and `-c review_model="<slug>"`, so it beats the `review_model` default in any config file. | `review_model` from the repository's `.codex/config.toml` if the repository is trusted, else from `~/.codex/config.toml`, else the session model: the effective `model` setting (a trusted repository's `.codex/config.toml` outranks `~/.codex/config.toml`), else the account default |
 | `--effort <level>` | Reasoning effort for this review, passed as `-c model_reasoning_effort="<level>"`. One of `low`, `medium`, `high`, `xhigh`; some models accept more levels such as `max` or `ultra`. | `model_reasoning_effort` from config, else the Codex default |
+| `--web <mode>` | Web search for this review: `cached`, `live`, or `off`. `off` leaves the reviewer without a web tool. | `cached` |
+| `--allow-tools` | Let the reviewer use the connectors, plugins, and MCP servers of the user's own Codex setup in this review. | off: those tools are turned off |
 | `--report-only` | One round, show the findings, change nothing. | off |
+
+`--web off` and `--allow-tools` cannot be combined: the user's own connectors include
+web search. If both are given, stop and ask the user to drop one. Never add `--web` or
+`--allow-tools` yourself; use them only when the user gave them for this run.
 
 Scope modes, all built from [review-prompt.md](review-prompt.md) in this skill's
 directory (`${CLAUDE_SKILL_DIR}/review-prompt.md`):
@@ -175,13 +181,49 @@ no `{{` remains.
 
 ### Run Codex
 
+One command runs Codex and then prints the working-tree fingerprint, so nothing can
+change the tree between the review and the second fingerprint:
+
 ```bash
-codex exec review -c 'sandbox_mode="read-only"' -o "$LOG_DIR/$RUN-round$N-codex.md" - < "$LOG_DIR/$RUN-round$N-prompt.md" 2> "$LOG_DIR/$RUN-round$N-codex.log"
+codex exec review -c 'sandbox_mode="read-only"' <tool flags> -o "$LOG_DIR/$RUN-round$N-codex.md" - < "$LOG_DIR/$RUN-round$N-prompt.md" 2> "$LOG_DIR/$RUN-round$N-codex.log"; echo "codex exit: $?"; bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"
 ```
 
 Codex layers this prompt on top of its own built-in review guidelines: the prompt
 arrives as the task message, the guidelines stay as base instructions. Verified
 2026-09-08 from the review thread transcript.
+
+`<tool flags>` decide which tools the reviewer has besides its sandboxed shell. Before
+every round, not only the first, get them from the one command in this table that fits
+the run, exactly as written:
+
+| Run | Where `<tool flags>` come from |
+|---|---|
+| default | `bash "${CLAUDE_SKILL_DIR}/tool-flags.sh"` |
+| `--web live` | `bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" live` |
+| `--web off` | `bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" off` |
+| `--allow-tools` | no command: use `-c 'web_search="cached"'`, or `"live"` with `--web live` |
+
+The script prints one line and that line is `<tool flags>`: the flags that turn off
+Codex's plugins, its connectors other than web search, and every configured MCP server.
+Before it prints, it asks Codex which MCP servers are enabled and which tools a session
+with those flags would be offered, and it prints nothing if anything besides web search
+is still on, for example a connector that a configuration file turns on by name. Run it
+again before each round:
+a fix, or the user, can change a Codex configuration file between rounds. If it exits
+non-zero, stop: the reviewer's tools cannot be limited. Show the user its message and
+say that `--allow-tools` runs the review with their own tools instead.
+
+Web search reaches the reviewer as a Codex connector, which is why the default keeps
+that one connector on. Observed 2026-11-13: with the apps feature disabled the reviewer
+has no web tool; `cached` and `live` made no difference to what the search tool
+fetched; an entry for a connector in a configuration file turns it on even without an
+`enabled` key; and `codex debug prompt-input` lists the tools a session would be
+offered, those of connectors and MCP servers among them. Codex declares tools there in
+three places: by name, in its list of tools loaded on demand, and, for the scripts it
+runs, inside a tool description. A configuration can hide a connector or a server from
+the first two with `omit_tools_from` and leave it to scripts. The script reads all
+three, and not the instructions printed beside them: a tool that instructions only
+mention does not count.
 
 Rules for the command:
 
@@ -209,19 +251,54 @@ Rules for the command:
   of the file status, the unstaged diff, the staged diff, and the contents of
   untracked files, with untracked links recorded by where they point. The script
   works from the repository root whatever the current folder is, and needs only bash,
-  git, and the standard `find`, `readlink`, and `sort`. After the run, run it again and
-  compare. If it exits non-zero, stop the loop and report its error: a fingerprint
-  that failed proves nothing. If any hash differs, stop the loop, show
-  `git status --short`, and tell the user that Codex wrote to the working tree.
-  Files git ignores are not covered; the read-only sandbox is the guarantee for
-  those.
+  git, and the standard `find`, `readlink`, and `sort`. The Codex command prints the
+  second fingerprint after its `codex exit:` line; edit nothing in the repository
+  while it runs, and compare the two. If the second run printed an error in place of
+  four hashes, stop the loop and report it: a fingerprint that failed proves nothing.
+  If any hash differs, stop the loop, show `git status --short`, and tell the user
+  that the working tree changed during the review.
+  Files git ignores are not covered. For those the guarantee is the read-only
+  sandbox, which limits the reviewer's shell commands, together with the other
+  tools being off unless the user allowed them.
 - If the `.log` contains `CreateProcessWithLogonW failed: 1385`, Codex could not
   start its persistent Windows sandbox shell and is retrying command by command.
   The review normally still completes. Mention it in the report and point to
   OpenAI's Windows sandbox page: https://learn.chatgpt.com/docs/windows/windows-sandbox
-- If the exit code is not 0, read the `.log` file, quote its last meaningful lines to
-  the user, and stop the loop. A usage-limit message means the ChatGPT allowance is
-  exhausted: report it and stop.
+- If the `codex exit:` line shows a number other than 0, read the `.log` file, quote
+  its last meaningful lines to the user, and stop the loop. A usage-limit message
+  means the ChatGPT allowance is exhausted: report it and stop.
+
+### Read the round's facts
+
+Run `bash "${CLAUDE_SKILL_DIR}/round-facts.sh"` exactly as written. It reads the newest
+round log of this repository, which is the round that just ended, and prints what the
+reviewer ran: the Codex CLI version, model, effort, and sandbox from the log header,
+the shell commands that started, ran, and failed to start, and each tool called outside
+the shell. If it exits non-zero, stop the loop and report its error.
+
+Stop the loop and report the review as failed, without triaging its output, when:
+
+- `shell_usable=no`. No sandboxed shell command ran, so the reviewer did not read the
+  code through the sandbox, whatever it wrote. Report `shell_started` and
+  `shell_start_failed`, suggest `codex update`, and on Windows point to
+  https://learn.chatgpt.com/docs/windows/windows-sandbox.
+- `other_tool_calls` is not 0 in a run without `--allow-tools`, and at least one of
+  those calls is real. A tool that should be off was called. Show the `tool=` lines.
+- `web_search_calls` is not 0 in a run with `--web off`, and at least one of those
+  calls is real.
+
+The facts are read from Codex's log, whose format is not documented, and the log also
+holds the text of every command the reviewer ran and everything those commands
+printed. A line there with the exact shape of a log event is counted as an event.
+Observed 2026-11-13: a reviewer testing a script against a made-up log produced such a
+line. So before stopping for a tool call, read the log at every line number in the
+`lines=` list of each `tool=` line concerned, not only the first: the same tool can
+appear once as printed text and once as a real call. A real call stands on its own
+between two commands. A line inside the text of a command, or inside what a command
+printed, is not a call. Go on only when every listed line is such text, and say so in
+the facts line. One real call, or one line you cannot place, stops the loop. The same
+doubt applies to `shell_usable=yes` when the only lines that look like a command having
+run sit inside the text of another command; treat that round as `shell_usable=no`.
 
 ## 5. Show the review verbatim
 
@@ -230,6 +307,11 @@ block headed `Codex review, round N of M (review model: <slug>, effort: <level>)
 using the model and effort determined in step 4. Do not summarize, soften, or
 reorder it. Add the session id from the `.log` (`grep "session id:"`) so the user
 can open the full transcript with `codex resume <session-id>`.
+
+Under the block, print the round's facts on one line, taken from step 4:
+`Reviewer: Codex CLI <codex_cli>, sandbox <sandbox>, <shell_ran> of <shell_started>
+shell commands ran, <web_search_calls> web searches, <other_tool_calls> other tool
+calls`, followed by the tool names when there are other tool calls.
 
 Codex renders its result as a short summary followed by `Full review comments:`,
 one finding per bullet as `[Pn] Title — <absolute path>:<lines>` with a
@@ -295,7 +377,8 @@ single line "no acceptance criteria: audit of existing code".
 - Start the next round when something was fixed and `N` is below `--rounds`.
 - Stop when the review reported no P0-P2 findings, when nothing changed this round,
   when `N` reached `--rounds`, when a finding was disputed twice, when Codex failed,
-  or when the user interrupts.
+  when the round's facts in step 4 made the review a failed one, or when the user
+  interrupts.
 
 Never commit, push, tag, or run release scripts as part of the loop.
 
@@ -312,7 +395,9 @@ did not exist".
 Lead with the verdict: clean, stopped with open findings, or stopped on an error.
 Then:
 
-1. Rounds table: round, model, findings by severity, fixed, rejected, deferred.
+1. Rounds table: round, model, findings by severity, fixed, rejected, deferred, and
+   what the reviewer used: shell commands that ran, web searches, other tool calls.
+   Say which tools the run allowed: the default, `--web <mode>`, or `--allow-tools`.
 2. Requirement checklist: each acceptance criterion with its final state, and
    whether the change stayed within the request. If no task file was used, say so.
 3. Files changed, tests added, and what each test proves.
@@ -327,6 +412,9 @@ Then:
 ## Guardrails
 
 - Codex reviews; it never edits. Only Claude edits.
+- The reviewer gets its sandboxed shell and web search, nothing else. Connectors,
+  plugins, and MCP servers stay off unless the user passed `--allow-tools` for this
+  run. Never drop a tool flag to make a review work.
 - Never weaken tests, types, validation, or lint rules to satisfy a finding.
 - Never paste `.env` values, tokens, or connection strings into a prompt, log, or
   report. The task file is sent to Codex in full: keep secrets out of it.
@@ -349,4 +437,6 @@ short `/codex-loop` also works unless a personal skill of the same name exists.
 /codex-loop --rounds 2 --model <slug>
 /codex-loop --effort xhigh
 /codex-loop features/auth --model <slug> --effort xhigh
+/codex-loop --web off
+/codex-loop --allow-tools
 ```

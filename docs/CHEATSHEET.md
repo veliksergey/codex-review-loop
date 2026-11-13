@@ -29,6 +29,8 @@ never commits. Full guide: [GUIDE.md](GUIDE.md).
 | `/codex-loop --rounds N` | Caps the rounds. Default 3. | Small changes or a tight usage budget: `--rounds 2`. |
 | `/codex-loop --model <slug>` | Another review model, this review only. | Authentication, authorization, payments, migrations, secrets, and the last pass before a pull request. |
 | `/codex-loop --effort <level>` | Another reasoning effort, this review only. | A harder look at risky code, for example `--effort xhigh`. |
+| `/codex-loop --web off` | No web search for the reviewer, this review only. | Code you do not want described in a search query. |
+| `/codex-loop --allow-tools` | Lets the reviewer use your own Codex connectors, plugins, and MCP servers, this review only. They are off otherwise. | A review that needs one of those tools. |
 | `/codex-review-loop:setup` | Installs or updates the rule blocks in your global files, showing each change first. | Once per computer, and again after a plugin update. |
 | `/codex-review-loop:setup repo` | Adds `docs/reviews/decisions.md` and an `AGENTS.md` starter to the current repository. | Once per repository, before its first review. |
 | `/codex-review-loop:setup check` | Reports what is installed. Changes nothing. | When the loop does not start or something looks wrong. |
@@ -68,7 +70,7 @@ separate modes; the other options combine with either.
 |---|---|
 | Claude's loop rules | `~/.claude/CLAUDE.md`, block `claude-rules` |
 | Codex's reviewer rules | `~/.codex/AGENTS.md`, block `codex-reviewer` |
-| Review defaults | `~/.codex/config.toml`: `review_model`, `model_reasoning_effort`, `web_search` |
+| Review defaults | `~/.codex/config.toml`: `review_model` for reviews only; `model_reasoning_effort` for every Codex session |
 | Per-repository model | `<repo>/.codex/config.toml`, only for trusted repositories |
 | Check commands | `<repo>/AGENTS.md` |
 | Rejected findings | `<repo>/docs/reviews/decisions.md` |
@@ -94,4 +96,6 @@ secrets.
 | `sandbox: workspace-write` in a hand-run log | Add `-c 'sandbox_mode="read-only"'`. The loop always does. |
 | Hangs on `Reading additional input from stdin...` | Hand-run only: add `< /dev/null`. |
 | Usage limit | Wait for the window, use a cheaper model, or `--rounds 2`. |
+| Stopped: no sandboxed shell command ran | `codex update`, then rerun. The reviewer could not read the code through its sandbox. |
+| Stopped: the reviewer's tools cannot be limited | The message names the tool that is still on, or says what Codex could not show. Turn the connector or server off in your Codex configuration, update Codex, or rerun with `--allow-tools`. |
 | `1385` in the log on Windows | https://learn.chatgpt.com/docs/windows/windows-sandbox |

@@ -14,7 +14,7 @@ Clone the repository and review it, as described in
 
 ## 2. Install the review command
 
-Copy the `codex-loop` skill folder, all four files:
+Copy the `codex-loop` skill folder, all seven files:
 
 ```bash
 mkdir -p ~/.claude/skills
@@ -40,7 +40,7 @@ Back up each file before you change it, for example
 | `codex-reviewer.md` | `~/.codex/AGENTS.md` | At the end | Yes. It tells Codex how to report findings. |
 | `shared-invariants.md` | `~/.codex/AGENTS.md` | At the top | Optional, recommended: shared rules on honesty, security, and change quality. |
 | `shared-import.md` | `~/.claude/CLAUDE.md` | As the first lines | Only with `shared-invariants.md`: it makes Claude read the same rules. |
-| `codex-config.toml` | `~/.codex/config.toml` | Above the first line that starts with `[` | Optional: review model, effort, and live web search for the reviewer. |
+| `codex-config.toml` | `~/.codex/config.toml` | Above the first line that starts with `[` | Optional: the review model, and the reasoning effort, which applies to every Codex session. |
 
 Paste each template whole, including its `codex-review-loop:begin` and
 `codex-review-loop:end` marker lines. They change nothing in how the files work,

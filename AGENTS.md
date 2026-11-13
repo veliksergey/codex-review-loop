@@ -13,7 +13,7 @@ Code implements; the Codex CLI reviews read-only. Users install it with
 | `.claude-plugin/marketplace.json` | Marketplace catalog with one entry, `codex-review-loop`. |
 | `plugins/codex-review-loop/.claude-plugin/plugin.json` | Plugin manifest, including `version`. |
 | `plugins/codex-review-loop/README.md` | The plugin-folder README. Anthropic's directory shows it as the listing; it must stay at least 40 words outside code blocks and describe what the plugin runs, sends, and writes. |
-| `plugins/codex-review-loop/skills/codex-loop/` | The review loop skill, the review prompt sent to Codex, the task file template, and `fingerprint.sh`, the before/after working-tree check. |
+| `plugins/codex-review-loop/skills/codex-loop/` | The review loop skill, the review prompt sent to Codex, the task file template, and four scripts: `fingerprint.sh`, the before/after working-tree check; `mcp-off-flags.sh`, which prints the flag that turns the configured MCP servers off; `tool-flags.sh`, which builds the flags that limit the reviewer's tools and checks them against Codex before a review starts; and `round-facts.sh`, which reads what the reviewer ran from Codex's log. |
 | `plugins/codex-review-loop/skills/setup/` | The setup skill and the blocks it installs in users' global files. |
 | `tests/` | Shell tests. Not shipped with the plugin. |
 | `docs/` | User documentation. `docs/reviews/decisions.md` records rejected review findings. |
@@ -28,6 +28,9 @@ There is no build or lint. These are the checks:
 | Plugin manifest and skills | `claude plugin validate --strict plugins/codex-review-loop` | Exit 0 |
 | Plugin loads with both skills | `claude --plugin-dir ./plugins/codex-review-loop plugin details codex-review-loop` | Lists `Skills (2)  codex-loop, setup` |
 | Fingerprint script | `bash tests/fingerprint.test.sh` | Exit 0, prints `all passed` |
+| Round facts script | `bash tests/round-facts.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
+| MCP flags script | `bash tests/mcp-off-flags.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
+| Tool flags script | `bash tests/tool-flags.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 
 ## Release rule
 
@@ -45,7 +48,10 @@ changes under "Documentation only".
   names, or absolute paths from a real computer. Examples use placeholders such as
   `<repo>`, `src/auth`. The one exception is the repository owner's GitHub account,
   `veliksergey`, in the install command `veliksergey/codex-review-loop` and in the
-  repository URLs in `plugin.json`.
+  repository URLs in `plugin.json`. The same goes for usage: no usage figures, no
+  numbers derived from anyone's review logs or Codex session records, and no details
+  of a real computer such as its configuration or installed tools. Evidence of that
+  kind may guide a change, but it stays outside the repository.
 - **Portable shell commands.** Commands in skills must work in bash on macOS, on
   Linux, and in Git Bash on Windows. Prefer git built-ins over platform tools: for
   example `git hash-object --stdin`, not `sha1sum`. No GNU-only flags.
@@ -59,7 +65,10 @@ changes under "Documentation only".
   `codex-review-loop:end <id>` markers. Setup finds and updates blocks by those
   markers; a block id never changes once released.
 - **The safety guarantees stay.** Codex always runs with
-  `-c 'sandbox_mode="read-only"'`; the loop fingerprints the tree before and after
+  `-c 'sandbox_mode="read-only"'`; a review runs with Codex's connectors other than
+  web search, its plugins, and its MCP servers turned off unless the user passes
+  `--allow-tools`; the loop stops a review in which no sandboxed command ran or a
+  tool that should be off was called; the loop fingerprints the tree before and after
   each round; nothing in this plugin commits, pushes, or installs software; logs
   live outside the reviewed repository; setup writes only after the user approves
   the exact change and backs up the file first.

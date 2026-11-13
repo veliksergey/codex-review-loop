@@ -106,6 +106,8 @@ https://code.claude.com/docs/en/plugins/host-marketplace#grant-access-to-a-priva
 | Review a branch before a pull request | `/codex-loop --base main` |
 | A sharper focus | `/codex-loop --focus "token audience, open redirects"` |
 | A different model or effort, once | `/codex-loop --model <slug> --effort xhigh` |
+| A review without web search | `/codex-loop --web off` |
+| A review that may use your own Codex connectors, plugins, and MCP servers | `/codex-loop --allow-tools` |
 | No review this time | Say "skip review" in your request. |
 
 The short `/codex-loop` works unless you also have a personal skill named
@@ -156,25 +158,41 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
 
 - Codex always runs with a read-only sandbox, forced on every run, because Codex
   defaults to a writable sandbox in repositories you have marked as trusted.
+- The sandbox limits the commands Codex runs. It does not cover the connectors,
+  plugins, and MCP servers a Codex installation can have, so the loop turns those
+  off for every review, and checks with Codex before each round that they are off.
+  Web search stays on, so the reviewer can check current
+  documentation. `--web off` removes it for one review, and `--allow-tools` lets one
+  review use your own Codex tools.
+- After each review the loop shows what the reviewer used. It stops if no sandboxed
+  command ran, or if a tool that should be off was called.
+- Web search has two limits, both observed on 2026-11-13. Codex's `cached` and `live`
+  settings made no difference to what the search tool fetched, so treat web search as
+  on or off. And the loop keeps web search by naming Codex's search connector with an
+  identifier OpenAI does not document: if a Codex update renames it, reviews lose web
+  search, and the reviewer says so in its summary.
 - Claude fingerprints the working tree before and after every review and stops if
   anything git can see changed: file status, staged and unstaged diffs, and the
   contents of untracked files, with links recorded by where they point. Files git
-  ignores are covered by the sandbox alone.
+  ignores are not fingerprinted.
 - The loop never commits, pushes, or runs release scripts.
 - Review logs and task files live in `~/.claude/codex-reviews/<repo>/`, outside the
   repository, so they never become part of the next review.
-- Codex runs on your ChatGPT account, so the code it reads and the full task file
-  are sent to OpenAI. Claude starts the loop on its own after each implementation
-  task; say "skip review" for code that must not be sent. Keep secrets out of your
-  requests.
+- Codex runs on your ChatGPT account, so the full task file and whatever the
+  reviewer reads are sent to OpenAI. The sandbox blocks writing, not reading: the
+  reviewer can read files outside the change. Its web searches, and the public pages
+  it opens, are requests it composes itself. Claude starts the loop on its own after
+  each implementation task; say "skip review" for code that must not be sent. Keep
+  secrets out of your requests.
 
 ## Privacy
 
 The plugin's authors collect nothing: there is no service, no telemetry, and
 nothing sent to the authors. The only data that leaves your machine is what the
-Codex CLI sends to OpenAI under your own ChatGPT account, the code under review and
-the task file, governed by OpenAI's privacy policy at
-https://openai.com/policies/privacy-policy and by your plan. Review logs stay in
+Codex CLI sends to OpenAI under your own ChatGPT account: the task file, whatever
+the reviewer reads while it reviews, and its web searches. That is governed by
+OpenAI's privacy policy at https://openai.com/policies/privacy-policy and by your
+plan. Review logs stay in
 `~/.claude/codex-reviews/` until you delete them. Report product or security concerns
 through the repository's issues.
 
@@ -183,7 +201,7 @@ through the repository's issues.
 | Path | Contents |
 |---|---|
 | `.claude-plugin/marketplace.json` | The marketplace catalog: one plugin. |
-| `plugins/codex-review-loop/skills/codex-loop/` | The review loop: `SKILL.md`, the review prompt sent to Codex, and the task file template. |
+| `plugins/codex-review-loop/skills/codex-loop/` | The review loop: `SKILL.md`, the review prompt sent to Codex, the task file template, and four small shell scripts it runs. |
 | `plugins/codex-review-loop/skills/setup/` | The setup command and the rule templates it installs. |
 | `plugins/codex-review-loop/README.md` | Short README inside the plugin folder, shown by Anthropic's plugin directory. |
 | `tests/` | Shell tests for this repository; not part of the installed plugin. |

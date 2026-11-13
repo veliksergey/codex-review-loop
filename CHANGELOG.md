@@ -5,6 +5,37 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.3.0 — 2026-11-13
+
+- A review no longer has the connectors, plugins, and MCP servers of your Codex
+  installation. Codex's read-only sandbox limits the commands the reviewer runs. It
+  does not cover those tools, and before this version a review could call any of
+  them. The loop now turns them off on every review, and asks Codex before each round
+  whether anything is still on; if so, the review does not start. `--allow-tools`
+  lets one review use them.
+- Web search stays on, and `--web off` removes it for one review. `--web live` asks
+  Codex for live search; in testing it fetched the same pages as the default mode,
+  `cached`.
+- After each review the loop shows what the reviewer used: the Codex CLI version, the
+  sandbox mode, how many shell commands ran, the web searches, and any other tool
+  call.
+- The loop stops a review as failed when no sandboxed shell command ran, or when a
+  tool that should be off was called. Before, a review that Codex produced without its
+  sandboxed shell looked like any other.
+- The second fingerprint of the working tree is taken by the same command that runs
+  Codex, so nothing can change the tree in between.
+- `setup` no longer writes `web_search = "live"` to `~/.codex/config.toml`. That line
+  set web search for all your Codex sessions, not only reviews. Run
+  `/codex-review-loop:setup` after updating: it shows the line and offers to remove
+  it. Setup also says now that `model_reasoning_effort` applies to every Codex
+  session.
+- The READMEs and the guide say what can leave your computer: the task file, whatever
+  the reviewer reads, which is not limited to the change, and its web searches.
+- Three scripts join `fingerprint.sh`, each with tests: `mcp-off-flags.sh` prints
+  the flag that turns your configured MCP servers off, `tool-flags.sh` builds the
+  flags that limit the reviewer's tools and checks them against Codex, and
+  `round-facts.sh` reads what the reviewer ran from Codex's log.
+
 ## 0.2.4 — 2026-10-21
 
 - The fingerprint records untracked links by where they point and never follows

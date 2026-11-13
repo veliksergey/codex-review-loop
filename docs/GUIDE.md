@@ -47,6 +47,17 @@ The loop, in order:
    rejected finding with its evidence.
 5. Claude re-runs the checks and the review, up to three rounds, and reports.
 
+### What leaves your computer
+
+Codex runs on your ChatGPT account, so every review sends data to OpenAI: the whole
+task file, and whatever the reviewer reads while it works. Read-only means the reviewer
+cannot change your files. It does not mean your files stay on your computer: the
+sandbox blocks writing, not reading, so the reviewer can read files outside the change
+and outside the repository, and what it reads is sent as well. Its web searches, and
+the public pages it opens, are requests it composes itself. Claude starts the loop on
+its own after each implementation task. Say "skip review" for code that must not be
+sent, and keep secrets out of your requests. The plugin's authors receive nothing.
+
 Where each piece lives after setup:
 
 | Piece | Location | Installed by |
@@ -165,8 +176,9 @@ What it does, in order:
      follow: honesty about what was run, security basics such as server-side
      authorization and tenant scope, change quality, and research habits.
    - **Codex review defaults:** the review model and reasoning effort, read from the
-     model list your Codex install has cached, plus live web search so the reviewer
-     can check current documentation.
+     model list your Codex install has cached. The review model applies to reviews
+     only. The effort setting applies to every Codex session on your computer, so
+     leave it unset if you only want it for reviews, and pass `--effort` instead.
 3. **One change at a time.** For each block it shows the file, the exact text, and
    asks **Apply**, **Skip**, or, if you already have your own version, **Keep mine**.
    It backs up each file before the first write, as
@@ -260,9 +272,13 @@ Commands and options:
 | `/codex-loop --focus "text"` | Any of the above, with a focus for the reviewer | `"token audience, replay, open redirects"` |
 | `/codex-loop --rounds 2` | Any of the above, at most two rounds | Small change or tight budget |
 | `/codex-loop --model <slug> --effort <level>` | Any of the above, with another model or effort | Riskier code |
+| `/codex-loop --web off` | Any of the above, with no web search for the reviewer | Code you do not want described in a search query |
+| `/codex-loop --web live` | Any of the above, asking Codex for live web search | See [What the reviewer can use](#what-the-reviewer-can-use) before relying on the difference |
+| `/codex-loop --allow-tools` | Any of the above, with your own Codex connectors, plugins, and MCP servers available to the reviewer | A review that needs one of those tools |
 
 Paths and `--base` are separate modes; use one of them. `--focus`, `--rounds`,
-`--model`, and `--effort` combine with either.
+`--model`, `--effort`, and `--web` combine with either. `--allow-tools` does too, but
+not together with `--web off`.
 
 **Auditing existing code.** The default mode only covers changed files. To review
 code that has not changed, name it: `/codex-loop src/billing --report-only`, one
@@ -299,7 +315,8 @@ The review model is chosen in this order, first match wins:
 own `model` setting.
 
 Effort is `model_reasoning_effort`, in config or with `--effort <level>` for one
-review. The common levels are `low`, `medium`, `high`, and `xhigh`; some models
+review. Unlike `review_model`, the config setting is not limited to reviews: it sets
+the effort of every Codex session. The common levels are `low`, `medium`, `high`, and `xhigh`; some models
 accept more, such as `max` or `ultra`. Low effort is cheap but misses things: in
 testing, a low-effort review missed an SQL injection that a focused review found.
 
@@ -358,6 +375,51 @@ Every review receives three layers:
 The output format is Codex's own: a summary, then `Full review comments:` with one
 `[Pn]` finding per item. A prompt cannot change that format.
 
+### What the reviewer can use
+
+Codex's read-only sandbox limits the commands the reviewer runs. A Codex installation
+can also have connectors to outside services, plugins, and MCP servers, and OpenAI's
+security documentation says the sandbox's network controls do not cover those. So the
+loop decides which of them a review gets:
+
+| Tool | Default review | How to change it |
+|---|---|---|
+| Sandboxed shell, read-only | On | Always on. A review in which no sandboxed command ran is stopped as failed. |
+| Web search, and opening public pages | On | `--web off` removes it for one review. |
+| Connectors other than web search | Off | `--allow-tools` |
+| Codex plugins and the MCP servers they bring | Off | `--allow-tools` |
+| MCP servers in your Codex configuration | Off | `--allow-tools` |
+
+After each review the loop prints one line of facts read from Codex's log: the CLI
+version, the sandbox mode, how many shell commands ran, how many web searches were
+made, and any other tool that was called. It stops when a tool that should be off
+appears there.
+
+Three things to know, each observed on 2026-11-13:
+
+- **Web search is itself a connector.** That is why the loop keeps one connector on
+  and turns the rest off. The connector is named by an identifier that OpenAI does not
+  document. If a Codex update renames it, reviews lose web search and the reviewer
+  says so in its summary.
+- **`cached` and `live` made no difference.** The loop passes `cached` by default and
+  `live` with `--web live`, as the Codex configuration reference describes. In a test
+  the search tool fetched a live page in both modes. Treat web search as on or off.
+- **Codex's built-in tools stay.** Besides the shell there are tools such as its patch
+  and image tools. The read-only sandbox and the before-and-after fingerprint are the
+  guard for those.
+
+A connector that any Codex configuration turns on by name stays on when the loop turns
+the default off, and an entry for a connector turns it on even without an `enabled`
+key. The loop does not read your configuration files to find such entries. Before
+every round it asks Codex itself which connectors and MCP servers a session with the
+review's flags would have, and it does not start the review if anything besides web
+search is on. It reads the tools Codex declares for that session, not the instructions
+printed beside them, so an `AGENTS.md` that only mentions a connector does not stop a
+review. A tool that a configuration hides from Codex's tool lists with
+`omit_tools_from` and leaves to the scripts Codex runs counts as on, and that holds
+for web search too if a configuration moves it there. To review anyway, turn that
+connector off in your configuration, or pass `--allow-tools`.
+
 ## 12. Reading the logs
 
 Everything is in `~/.claude/codex-reviews/<repo>/`:
@@ -373,7 +435,7 @@ Everything is in `~/.claude/codex-reviews/<repo>/`:
 
 In the `.log` header, `sandbox:` must read `read-only`. The header's `model:` line
 is the session model; the review itself runs on the review model, which the report
-names.
+names. The line of facts the loop prints under each review is read from this log.
 
 Watch a review live from a second terminal:
 
@@ -443,6 +505,10 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
 | Codex rejects the model or effort | Check the slug and the levels in `~/.codex/models_cache.json`. Retired models disappear from that list. |
 | A repository's `.codex/config.toml` is ignored | The repository is not trusted. Run `codex` once in it and accept the trust prompt. |
 | `CreateProcessWithLogonW failed: 1385` in the log (Windows) | Windows policy denies the Codex sandbox accounts the logon they need. The review usually still completes, more slowly. See OpenAI's Windows sandbox page: https://learn.chatgpt.com/docs/windows/windows-sandbox |
+| The loop stops: no sandboxed shell command ran | Codex could not start its sandboxed shell, so the reviewer could not read your code through the sandbox, whatever it wrote. Run `codex update` and rerun. On Windows, see the Windows sandbox page above. `--allow-tools` does not get around this: the loop stops then too. |
+| The loop stops: the reviewer's tools cannot be limited | The message says which of three causes applies. A tool is still offered to the reviewer: some Codex configuration turns a connector on by name, or an MCP server stayed on, and the message names the tool; turn it off there. Or an MCP server cannot be turned off: `codex mcp list --json` failed, printed something the loop cannot read in full, or printed a server name with a character other than letters, digits, `_`, `-`, and `.`. Or Codex could not show which tools a session would have, or showed a list the loop cannot read or one without any tool: update Codex. `--allow-tools` runs the review with your own tools instead. |
+| The loop stops: a tool that should be off was called | A connector, plugin, or MCP tool appeared in Codex's log although the loop turned them off. A Codex update may have changed how they are disabled. Report it in the repository's issues with your Codex version. |
+| The reviewer says it has no web search tool | You passed `--web off`, or a Codex update renamed the search connector. See [What the reviewer can use](#what-the-reviewer-can-use). |
 
 ## 15. Known limits
 
@@ -455,8 +521,19 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
   unstaged diff, the staged diff, and the contents of untracked files, with untracked
   links recorded by where they point rather than followed. Diff tools set in your git
   config do not affect it. It does not
-  hash files git ignores, such as `.env` or build output. Codex's read-only sandbox
-  is the main guarantee.
+  hash files git ignores, such as `.env` or build output. For those the guard is
+  Codex's read-only sandbox, which limits the reviewer's commands, together with the
+  other tools being off.
+- **The reviewer can read outside the repository.** The read-only sandbox blocks
+  writing, not reading. Observed on 2026-11-12: its policy grants read access from
+  the root of the file system. What it reads is sent to OpenAI with the rest of the
+  review: see [What leaves your computer](#what-leaves-your-computer).
+- **The facts under each review come from an undocumented log.** Codex's log format
+  can change with any release. A change that hides the shell commands would make the
+  loop stop every review as failed until the plugin is updated. The log also holds
+  what the reviewer's commands printed, so a printed line can look like a tool call.
+  The loop lists the log line of every call it counted, and Claude reads each one
+  before deciding that a tool that should be off was not called.
 - **Severity labels vary between runs.** Claude assigns the final label.
 - **Three rounds is a hard cap.** Fixes made in the last round have passed the
   checks but not another review. The final report says so.

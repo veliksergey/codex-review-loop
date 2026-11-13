@@ -65,17 +65,23 @@ after the settings rule below.
 | `codex-config` | `codex-config.toml` | `~/.codex/config.toml` | any of its keys at top level, see machine step 5 | before the first line that starts with `[`, or at the end when there is none |
 
 **Settings rule for `codex-config`.** Its key lines (`review_model`,
-`model_reasoning_effort`, `web_search`) hold the user's own settings, filled in by
-machine step 5. When comparing this block with its template, a key line matches the
-template whatever its value, and a key line that is missing also matches: the user
-left that key unset or keeps it elsewhere in the file. Compare only the marker and
-comment lines. When the user chooses "Update to the template", keep the block's key
-lines exactly as they are and replace only the marker and comment lines.
+`model_reasoning_effort`) hold the user's own settings, filled in by machine step 5.
+When comparing this block with its template, a key line matches the template
+whatever its value, and a key line that is missing also matches: the user left that
+key unset or keeps it elsewhere in the file. Compare only the marker and comment
+lines. When the user chooses "Update to the template", keep the block's key lines
+exactly as they are and replace only the marker and comment lines.
 
 This rule covers template maintenance only. It never discards a choice the user
-just made: when machine step 5 collects a model, effort, or web search value that
-differs from the block's current line, show that line before and after and apply
-the change once the user approves, like any other edit.
+just made: when machine step 5 collects a model or effort value that differs from
+the block's current line, show that line before and after and apply the change once
+the user approves, like any other edit.
+
+**A `web_search` line inside the block** was written by a version before 0.3.0. The
+review loop now passes its own web search mode on every review, so the line no longer
+affects reviews: it only sets web search for the user's other Codex sessions. When
+comparing, treat it like a key line. Then show it, say what it does, and ask "Remove
+the line" or "Keep it". Remove it only after "Remove the line".
 
 When the user keeps an unmarked copy of `claude-rules` and it lacks a
 `## Codex review loop` section, say plainly that Claude will not run the loop on
@@ -112,7 +118,8 @@ work without them. Ask one multi-select question for the optional parts:
   `~/.codex/AGENTS.md` and `shared-import` in `~/.claude/CLAUDE.md`, so Claude and
   Codex follow the same rules on honesty, security, change quality, and research.
 - **Codex review defaults.** Block `codex-config` in `~/.codex/config.toml`: the
-  review model, the reasoning effort, and live web search for the reviewer.
+  review model, which applies to reviews only, and the reasoning effort, which
+  applies to every Codex session on this computer.
 
 ### Step 3. `~/.claude/CLAUDE.md`
 
@@ -139,9 +146,9 @@ second `review_model` line breaks the file.
      `~/.codex/config.toml`), else the account default.
    - `model_reasoning_effort`. Offer the `effort` values that the chosen model's
      `supported_reasoning_levels` lists; without the cache, offer `low`, `medium`,
-     `high`, and `xhigh`. Suggest `high`.
-   - `web_search = "live"` lets the reviewer check current documentation. Keep it
-     unless the user declines.
+     `high`, and `xhigh`. Suggest `high`. Say that this key is not limited to
+     reviews: it sets the effort of every Codex session. The user may leave it unset
+     and pass `--effort` to a review instead.
 2. For each key, look for it at top level outside the block, meaning before the
    first `[` header. If it is there, do not add it again: show its current value
    and ask whether to change that line in place.
@@ -150,7 +157,9 @@ second `review_model` line breaks the file.
    apply the block. Block already present: change only the key lines whose value
    the user chose differently in this run, showing each line before and after; do
    not re-ask about lines the user did not change.
-4. Never touch `[windows]`, `[projects.*]`, or any other table.
+4. Block already present with a `web_search` line: follow the rule for that line
+   under "Blocks and markers".
+5. Never touch `[windows]`, `[projects.*]`, or any other table.
 
 ### Step 6. Log folder
 
@@ -205,7 +214,10 @@ Read-only: run nothing that writes and ask no write question.
    "Blocks and markers", including the settings rule for `codex-config`.
 3. `~/.codex/config.toml`: the top-level values of `review_model`,
    `model_reasoning_effort`, and `web_search`, and the `[windows]` `sandbox` value
-   on Windows. Print only those lines.
+   on Windows. Print only those lines, and say what each affects: `review_model`
+   reviews only; `model_reasoning_effort` and `web_search` every Codex session. The
+   review loop passes its own web search mode, so reviews do not need a `web_search`
+   line.
 4. If the working directory is inside a git repository: whether
    `docs/reviews/decisions.md` exists, whether `AGENTS.md` or `CLAUDE.md` names the
    check commands, and whether the repository is trusted in `~/.codex/config.toml`.
