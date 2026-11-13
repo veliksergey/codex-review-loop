@@ -14,7 +14,8 @@ never commits. Full guide: [GUIDE.md](GUIDE.md).
    they are wrong.
 4. Claude implements, runs the checks, and starts the loop. Say "skip review" to
    skip it.
-5. Read the rounds and the final report. Decide on the P3 items.
+5. Read the rounds and the final report. It starts with a verdict and with the
+   findings Claude overrode. Decide on the P3 items.
 6. Read the diff, then commit yourself.
 
 ## Commands
@@ -64,6 +65,18 @@ separate modes; the other options combine with either.
 | Rejected | Disproved with evidence | Row in `docs/reviews/decisions.md` |
 | Disputed twice | Same finding after a rejection | Escalated to you |
 
+## Verdict
+
+The final report starts with one of these. The first that fits is used.
+
+| Verdict | Meaning | What to do |
+|---|---|---|
+| `review failed` | The last round gave no usable review | Fix the cause the report names, rerun |
+| `open findings` | A valid P0-P2 finding of the task is not fixed, or a finding is disputed twice | Read them and decide |
+| `fixes not re-reviewed` | No review has seen the last fixes | Rerun, or read the fixes yourself |
+| `clean with unverified items` | Nothing open, but something rests on Claude alone: an unchecked criterion, a rejected or downgraded finding, a defect left as outside the task | Read the listed items |
+| `verified` | The last review saw the final code and found nothing to fix; the reviewer checked every criterion; nothing was overridden | Read the diff, commit |
+
 ## Where things live
 
 | Item | Path |
@@ -98,4 +111,5 @@ secrets.
 | Usage limit | Wait for the window, use a cheaper model, or `--rounds 2`. |
 | Stopped: no sandboxed shell command ran | `codex update`, then rerun. The reviewer could not read the code through its sandbox. |
 | Stopped: the reviewer's tools cannot be limited | The message names the tool that is still on, or says what Codex could not show. Turn the connector or server off in your Codex configuration, update Codex, or rerun with `--allow-tools`. |
+| Stopped: the log folder belongs to another repository | Two repositories share a folder name. Rename one. After moving a repository, delete `repository-root.txt` in its log folder. |
 | `1385` in the log on Windows | https://learn.chatgpt.com/docs/windows/windows-sandbox |

@@ -14,7 +14,7 @@ Clone the repository and review it, as described in
 
 ## 2. Install the review command
 
-Copy the `codex-loop` skill folder, all seven files:
+Copy the `codex-loop` skill folder, all nine files:
 
 ```bash
 mkdir -p ~/.claude/skills

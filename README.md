@@ -6,8 +6,9 @@ test, and asks Codex to look again, up to three rounds. You watch the whole exch
 in the terminal, and nothing is committed until you commit it.
 
 The point is an independent second opinion on every change: a reviewer from a
-different vendor does not share the author's blind spots, and it judges the code
-against your request, not against what the author claims about it.
+different vendor is less likely to share the author's blind spots, though it can
+share some, and it judges the code against your request, not against what the author
+claims about it.
 
 This repository is a Claude Code plugin. It installs two commands:
 
@@ -28,7 +29,10 @@ This repository is a Claude Code plugin. It installs two commands:
    with a regression test. P3 items wait for your decision. Rejected findings are
    recorded with evidence in the repository's `docs/reviews/decisions.md`, so Codex
    does not raise them again.
-5. Claude re-runs the checks and the review, at most three rounds, then reports.
+5. Claude re-runs the checks and the review, at most three rounds, then reports. The
+   report starts with a verdict that says how far the result was verified, from
+   `verified` to `review failed`, and with every finding Claude rejected or
+   downgraded.
 
 Codex is the second opinion, not the judge: Claude must prove or disprove each
 finding in the code, and the final decision and the commit are yours.
@@ -177,7 +181,9 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
   ignores are not fingerprinted.
 - The loop never commits, pushes, or runs release scripts.
 - Review logs and task files live in `~/.claude/codex-reviews/<repo>/`, outside the
-  repository, so they never become part of the next review.
+  repository, so they never become part of the next review. The folder records which
+  repository it belongs to, and the loop stops when another repository with the same
+  folder name tries to use it.
 - Codex runs on your ChatGPT account, so the full task file and whatever the
   reviewer reads are sent to OpenAI. The sandbox blocks writing, not reading: the
   reviewer can read files outside the change. Its web searches, and the public pages

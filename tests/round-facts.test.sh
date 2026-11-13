@@ -166,6 +166,32 @@ out="$(cd "$repo/sub" && HOME="$home" bash "$rf")"; rc=$?
 [ $rc -eq 0 ] || fail "no argument: exit $rc"
 expect "no argument: reads the newest round log of this repository" "$out" \
   "log=20260101-000000-round2-codex.log" "shell_ran=3"
+# Two lines identify the round. Neither is known yet: no prompt file lies beside the
+# log, and the repository has no commit.
+expect "no prompt file and no commit: both are reported as unknown" "$out" \
+  "prompt_hash=unknown" "commit=unknown"
+
+# The prompt of a round lies beside its log. Its hash is that of its bytes: the first
+# value below is git's hash of the six bytes "hello" and a line feed.
+printf 'hello\n' > "$logs/20260101-000000-round2-prompt.md" || abort "write the prompt"
+git -C "$repo" -c user.name=test -c user.email=test commit -q --allow-empty -m first || abort "commit"
+out="$(cd "$repo/sub" && HOME="$home" bash "$rf")"
+expect "a prompt file beside the log: its hash is reported" "$out" \
+  "prompt_hash=ce013625030ba8dba906f756967f9e9ca394464a"
+expect "a repository with a commit: the commit is reported" "$out" \
+  "commit=$(git -C "$repo" rev-parse HEAD)"
+# With Windows line endings the prompt is other bytes and must hash differently, also
+# where git is set to convert line endings, which the three variables switch on.
+printf 'hello\r\n' > "$logs/20260101-000000-round2-prompt.md" || abort "rewrite the prompt"
+out="$(cd "$repo/sub" && HOME="$home" GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.autocrlf \
+  GIT_CONFIG_VALUE_0=true bash "$rf")"
+expect "a prompt with Windows line endings: hashed as it is, not converted" "$out" \
+  "prompt_hash=ef0493b275aa2080237f676d2ef6559246f56636"
+# The prompt belongs to its own round: an older round's prompt is not taken for it.
+rm -f "$logs/20260101-000000-round2-prompt.md" || abort "remove the prompt"
+printf 'hello\n' > "$logs/20260101-000000-round1-prompt.md" || abort "write round 1's prompt"
+out="$(cd "$repo/sub" && HOME="$home" bash "$rf")"
+expect "only another round has a prompt file: unknown" "$out" "prompt_hash=unknown"
 
 rm -f "$logs"/*-codex.log || abort "remove logs"
 out="$(cd "$repo" && HOME="$home" bash "$rf" 2>/dev/null)"; rc=$?

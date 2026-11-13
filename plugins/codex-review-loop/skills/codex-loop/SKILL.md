@@ -2,7 +2,7 @@
 name: codex-loop
 description: Run the Codex (ChatGPT) code-review loop on the current uncommitted changes, on a branch compared with a base, or on specific files and folders; a target with no uncommitted changes is audited as existing code without a task file. Codex reviews read-only against the user's request in the task file; Claude verifies every finding, fixes valid P0-P2 findings with regression tests, lists P3 items for the user, and re-reviews, up to 3 rounds. Use after finishing an implementation task in a git repository, or when the user asks for a Codex review, a ChatGPT review, a second opinion, or a review loop.
 argument-hint: "[paths...] [--base <ref>] [--focus \"text\"] [--rounds N] [--model <slug>] [--effort <level>] [--web cached|live|off] [--allow-tools] [--report-only]"
-allowed-tools: Bash(codex login status), Bash(git rev-parse --show-toplevel), Bash(git status --short --untracked-files=all), Bash(git diff), Bash(git diff --cached), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" live), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" off), Bash(bash "${CLAUDE_SKILL_DIR}/round-facts.sh"), Bash(mkdir -p "$LOG_DIR"), Bash(date +%Y%m%d-%H%M%S), Bash(wc -l), Read, Edit(~/.claude/codex-reviews/**), Edit(docs/reviews/decisions.md), Grep, Glob
+allowed-tools: Bash(codex login status), Bash(git rev-parse --show-toplevel), Bash(git status --short --untracked-files=all), Bash(git diff), Bash(git diff --cached), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" live), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" off), Bash(bash "${CLAUDE_SKILL_DIR}/round-facts.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/log-dir.sh"), Bash(date +%Y%m%d-%H%M%S), Bash(wc -l), Read, Edit(~/.claude/codex-reviews/**), Edit(docs/reviews/decisions.md), Grep, Glob
 ---
 
 # Codex review loop
@@ -10,8 +10,8 @@ allowed-tools: Bash(codex login status), Bash(git rev-parse --show-toplevel), Ba
 You are the implementer. Codex, signed in with the user's ChatGPT account, is the
 independent reviewer and runs read-only. This skill sends Codex the change together
 with the user's request, verifies every finding, fixes what the policy allows, and
-repeats until the change is clean or the round limit is reached. The user watches
-the terminal: show them everything Codex says, verbatim.
+repeats until a review finds nothing to fix or the round limit is reached. The user
+watches the terminal: show them everything Codex says, verbatim.
 
 Arguments received: `$ARGUMENTS`
 
@@ -50,7 +50,12 @@ it rejects those flags together with a prompt. Scope is expressed in the prompt.
 Stop and tell the user if one fails.
 
 1. `git rev-parse --show-toplevel` must succeed. Codex review needs a git repository.
-   Keep the output as `REPO_ROOT`; its basename is `REPO`.
+   Keep the output as `REPO_ROOT`; its basename is `REPO`. Then run
+   `bash "${CLAUDE_SKILL_DIR}/log-dir.sh"` exactly as written. It must succeed too, and
+   the one line it prints is the log folder, `LOG_DIR`. It fails when another
+   repository with the same folder name already uses that folder, because the two
+   would share one task file and one set of logs. Show its message and stop, without
+   reading or writing anything in that folder.
 2. `codex login status` must print `Logged in`. Otherwise tell the user to run
    `!codex login` and stop.
 3. The repository's documented checks must pass on the current tree. Read the
@@ -59,8 +64,8 @@ Stop and tell the user if one fails.
    to review. If no checks are documented, say so and continue.
 4. If `git status --short --untracked-files=all` shows a new secret-bearing file
    such as `.env` or a key file, stop and ask before reviewing.
-5. The task file `$LOG_DIR/task.md` (see step 3 for `LOG_DIR`) must describe the
-   change under review. It is the user's request, the acceptance criteria, the
+5. The task file `$LOG_DIR/task.md` (`LOG_DIR` is the folder from item 1) must
+   describe the change under review. It is the user's request, the acceptance criteria, the
    decisions made while implementing, and the handoff, in the shape of
    [task-template.md](task-template.md) (`${CLAUDE_SKILL_DIR}/task-template.md`).
    Codex judges the change against it.
@@ -98,16 +103,14 @@ Stop and tell the user if one fails.
 ## 3. Prepare the log directory outside the repository
 
 Logs never go inside the repository: untracked files there become part of the next
-uncommitted review.
-
-```bash
-REPO_ROOT="$(git rev-parse --show-toplevel)"; REPO="$(basename "$REPO_ROOT")"
-RUN="$(date +%Y%m%d-%H%M%S)"
-LOG_DIR="$HOME/.claude/codex-reviews/$REPO"; mkdir -p "$LOG_DIR"; echo "$LOG_DIR/$RUN"
-```
+uncommitted review. `LOG_DIR` is the folder `log-dir.sh` printed in step 2,
+`~/.claude/codex-reviews/<REPO>`; the script has created it. Take the run id once, for
+all rounds, with `date +%Y%m%d-%H%M%S`. It is `RUN`.
 
 Files in `LOG_DIR`:
 
+- `repository-root.txt`: the root path of the repository this folder belongs to,
+  written by `log-dir.sh`. Leave it alone.
 - `task.md`: the current task file, written at task start and updated until the
   loop ends. Overwritten when the next task starts.
 - `<RUN>-task.md`: archived copy of the task file as it stood at the final report.
@@ -117,7 +120,8 @@ Files in `LOG_DIR`:
   - `<RUN>-round<N>-prompt.md`: the exact prompt sent to Codex.
   - `<RUN>-round<N>-codex.md`: Codex's final review, written by Codex through `-o`.
   - `<RUN>-round<N>-codex.log`: Codex's progress log and session id (stderr).
-  - `<RUN>-round<N>-claude.md`: your triage table and requirement checklist.
+  - `<RUN>-round<N>-claude.md`: your triage table, requirement checklist, and judge
+    record.
 
 ## 4. Run a round
 
@@ -319,12 +323,13 @@ one-paragraph body. That shape comes from Codex's own output schema and the prom
 cannot change it. Requirement findings carry `(criterion N)`, `(beyond request)`, or
 `(handoff)` at the start of the title.
 
-Completeness check, uncommitted and branch modes: for every untracked file in scope
+Mention check, uncommitted and branch modes: for every untracked file in scope
 (from `git status --porcelain --untracked-files=all`, lines starting with `??`,
-excluding `docs/reviews/`), confirm its file name appears in the round's `.log` or
-`.md`. A name that appears nowhere means Codex never looked at it. List any such
+excluding `docs/reviews/`), look for its file name in the round's `.log` or `.md`.
+A name that appears nowhere means Codex never looked at the file. List any such
 file in the report and, if the loop continues, add it as a path in a targeted
-paths-mode round.
+paths-mode round. A name that does appear shows only that the file was mentioned,
+not that it was read in full or reviewed.
 
 ## 6. Triage every finding
 
@@ -332,8 +337,8 @@ Treat each finding as a testable claim. Open the cited file and lines, trace the
 code path, or reproduce it with a test before deciding. Convert Codex's absolute
 paths to repository-relative paths in your table. Codex's severity label is a
 proposal: in testing the same fact was rated P1 in one run and P2 in another. Set
-the severity yourself from the scale in `review-prompt.md`, and note in the triage
-table when you changed it.
+the severity yourself from the scale in `review-prompt.md`. The triage table keeps
+both labels, Codex's and yours.
 
 | Outcome | Rule |
 |---|---|
@@ -360,11 +365,25 @@ With `--report-only`, the repository is not written at all: no fixes and no
 `docs/reviews/decisions.md` row. Triage into the round's `-claude.md` as usual, then
 go to the final report after one round.
 
-Write `<RUN>-round<N>-claude.md`: one row per finding with severity, decision, and
-the evidence or the change made, followed by a requirement checklist: one row per
-acceptance criterion with met, not met, fixed this round, or not verifiable, based
-on your own verification and Codex's findings. In audit mode the checklist is the
-single line "no acceptance criteria: audit of existing code".
+Write `<RUN>-round<N>-claude.md` in the shape of
+[triage-template.md](triage-template.md) (`${CLAUDE_SKILL_DIR}/triage-template.md`),
+and keep its headings, table columns, and decision words as they are. It has three
+parts:
+
+- The findings table: one row per finding, with Codex's label, your label, one
+  decision word, the evidence, and the proof. Proof is the test with its failing and
+  passing result, or the reason no test is possible.
+- The requirement checklist: one row per acceptance criterion, with its state and
+  who verified that state: the reviewer, the implementer, or nobody. Take `reviewer`
+  only from what the review says it checked, and only for a criterion you have not
+  changed since. A criterion you fixed this round is in a state no reviewer has seen.
+  It, and a criterion the review could not check or does not mention, is
+  `implementer` when a test or check you ran shows it, and `nobody` otherwise.
+- The judge record: the plugin's version, every line `round-facts.sh` printed in
+  step 4, the web search mode, whether `--allow-tools` was given, and the four hashes
+  of the round's fingerprint. The version is the `version` in
+  `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`; write `unknown` when that path
+  does not resolve because the skill was installed by hand.
 
 ## 7. Close the round
 
@@ -392,18 +411,37 @@ with one line naming the scope and the reason, for example "Audit of <paths>,
 untouched" or "<date>: reviewed without a task file at the user's choice; task.md
 did not exist".
 
-Lead with the verdict: clean, stopped with open findings, or stopped on an error.
-Then:
+Lead with one verdict: the first row of this table that fits the run.
 
-1. Rounds table: round, model, findings by severity, fixed, rejected, deferred, and
+| The run ended like this | Verdict |
+|---|---|
+| The last round gave no usable review: Codex exited with an error or was stopped, the facts in step 4 made the review a failed one, a fingerprint failed or differed, or the tool flags could not be built. | `review failed` |
+| A finding's decision is `not fixed` or `disputed twice`: a valid P0-P2 finding that belongs to the task is still open. A finding decided as `outside scope` does not count here. | `open findings` |
+| Code changed after the last review that completed: fixes were made in the last allowed round, or the loop was stopped before another round. | `fixes not re-reviewed` |
+| No row above fits, and something stands unverified: a checklist row that does not say `reviewer`, something the review says it could not check, a file listed by the mention check in step 5, an implementer override, or a finding decided as `outside scope`. | `clean with unverified items` |
+| No row above fits. The last review saw the final code and reported no P0-P2 finding, the reviewer verified every criterion, and nothing was overridden. | `verified` |
+
+Say in one sentence which facts decided the verdict. A review that cannot run the
+tests leaves the criteria they prove to your own run, so that run is `clean with
+unverified items`, not `verified`. In a run without a task file there are no criteria:
+say so beside the verdict.
+
+Then, in this order:
+
+1. Implementer overrides: every finding you rejected, with its evidence and its row
+   in `docs/reviews/decisions.md`, and every finding that Codex labeled P0 to P2 and
+   you labeled P3. These are your judgments on your own work, and no reviewer has
+   confirmed them. Write "Implementer overrides: none" when there are none.
+2. Rounds table: round, model, findings by severity, fixed, rejected, deferred, and
    what the reviewer used: shell commands that ran, web searches, other tool calls.
    Say which tools the run allowed: the default, `--web <mode>`, or `--allow-tools`.
-2. Requirement checklist: each acceptance criterion with its final state, and
-   whether the change stayed within the request. If no task file was used, say so.
-3. Files changed, tests added, and what each test proves.
-4. Checks run with exact pass, fail, or skip results.
-5. P3 items awaiting the user's decision.
-6. Rejected findings recorded in `docs/reviews/decisions.md`.
+3. Requirement checklist: each acceptance criterion with its final state and who
+   verified that final state, and whether the change stayed within the request. A
+   criterion fixed after the last review is not verified by the reviewer. If no task
+   file was used, say so.
+4. Files changed, tests added, and what each test proves.
+5. Checks run with exact pass, fail, or skip results.
+6. P3 items awaiting the user's decision.
 7. Log paths under `$LOG_DIR` and the `codex resume <session-id>` command for the
    last round.
 8. State that nothing was committed, and remind the user to read the diff before

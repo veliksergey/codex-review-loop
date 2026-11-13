@@ -5,6 +5,30 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.4.0 — 2026-11-13
+
+- The final report starts with one of five verdicts: `verified`, `clean with
+  unverified items`, `fixes not re-reviewed`, `open findings`, or `review failed`.
+  Before, a run in which Codex could not check a criterion, and a run whose last
+  fixes no review had seen, both ended as "clean".
+- The requirement checklist names who verified each criterion: the reviewer, the
+  implementer, or nobody.
+- The report lists "Implementer overrides" first: every finding Claude rejected, and
+  every finding Codex rated P0 to P2 that Claude rated P3.
+- Each round's triage note has a fixed shape, given by the new `triage-template.md`:
+  one table with Codex's label, Claude's label, a decision word, the evidence, and the
+  proof; the checklist; and a judge record with the plugin version, a hash of the
+  prompt, the commit, the fingerprint, the web search mode, and what the reviewer ran.
+- The loop stops when another repository with the same folder name already uses the
+  log folder. The new `log-dir.sh` records the repository's path in
+  `repository-root.txt` there. Before, the two shared one task file and one set of
+  logs without notice.
+- `round-facts.sh` also prints a hash of the round's prompt and the current commit.
+- Corrections: the guide says that Codex stores older session records compressed; the
+  README no longer says that a reviewer from another vendor "does not share the
+  author's blind spots"; and the check that looks for new file names in the log is
+  called a mention check and says what a name that appears proves.
+
 ## 0.3.0 — 2026-11-13
 
 - A review no longer has the connectors, plugins, and MCP servers of your Codex

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Prints the facts of one Codex review log as key=value lines: the header values, how
 # many shell commands started, ran, and failed to start, and the tool calls outside the
-# shell. Without an argument it reads the newest round log of the current repository.
+# shell. Two more lines identify the round: a hash of the prompt file beside the log,
+# and the commit the repository is at. Without an argument it reads the newest round log
+# of the current repository.
 # Prints nothing and exits non-zero if there is no log or it has no Codex header.
 set -uo pipefail
 
@@ -78,6 +80,15 @@ done <<EOF
 $tools
 EOF
 
-printf 'log=%s\n%s\n' "$(basename "$log")" "$facts"
+# What was sent, hashed byte for byte, and the commit under the reviewed tree. Either is
+# unknown for a log kept on its own or read outside a repository.
+prompt="${log%-codex.log}-prompt.md"
+prompt_hash="unknown"
+if [ -f "$prompt" ]; then
+  prompt_hash="$(git hash-object --no-filters -- "$prompt" 2>/dev/null)" || prompt_hash="unknown"
+fi
+commit="$(git rev-parse --verify --quiet HEAD 2>/dev/null)" || commit="unknown"
+
+printf 'log=%s\nprompt_hash=%s\ncommit=%s\n%s\n' "$(basename "$log")" "$prompt_hash" "$commit" "$facts"
 printf 'tool_calls=%s\nweb_search_calls=%s\nother_tool_calls=%s\n' "$total" "$web" "$((total - web))"
 [ -z "$tools" ] || printf '%s\n' "$tools"

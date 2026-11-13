@@ -50,13 +50,18 @@ https://github.com/veliksergey/codex-review-loop
   connector with an identifier OpenAI does not document: if a Codex update renames
   it, reviews lose web search, and the reviewer says so in its summary.
 - **Writes** review logs and task files to `~/.claude/codex-reviews/<repo>/`, outside
-  the reviewed repository; rejected findings to `docs/reviews/decisions.md` inside
-  it; and, through `setup`, rule blocks in the three global files above, only after
-  you approve each change.
+  the reviewed repository, with one file there that records which repository the
+  folder belongs to; rejected findings to `docs/reviews/decisions.md` inside the
+  repository; and, through `setup`, rule blocks in the three global files above, only
+  after you approve each change.
 - **Never** commits, pushes, or runs release scripts. The loop fingerprints the
   working tree before and after every review and stops if anything changed. It also
   stops when the reviewer could not run a sandboxed command, or called a tool that
-  should be off.
+  should be off, and when another repository with the same folder name already uses
+  the log folder.
+- **Reports** one of five verdicts, from `verified` to `review failed`, so a result
+  that rests on Claude's own checks or on fixes no review has seen does not read as
+  verified.
 
 ## Privacy
 

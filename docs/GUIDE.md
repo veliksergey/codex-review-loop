@@ -255,11 +255,30 @@ P0-P2 findings and runs another round.
    Say "skip review" in your request if you do not want one.
 4. Watch the rounds. Requirement findings start with `(criterion N)`,
    `(beyond request)`, or `(handoff)`.
-5. Read the final report: requirement checklist, what was fixed, what was rejected
-   and why, P3 items awaiting your decision, checks run, log paths.
+5. Read the final report. It starts with one verdict from the table below, then
+   lists the findings Claude rejected or moved below the must-fix line, then the
+   requirement checklist with who verified each criterion, what was fixed, P3 items
+   awaiting your decision, checks run, and log paths.
 6. Decide on the P3 items, for example "fix P3 items 1 and 3".
 7. Read the diff (`git diff`, `git diff --cached`) and commit it yourself, including
    `docs/reviews/decisions.md` when rows were added.
+
+The verdict is one of five. The first that fits the run is used:
+
+| Verdict | What happened | What to do |
+|---|---|---|
+| `review failed` | The last round gave no usable review: Codex failed or was stopped, no sandboxed command ran, a tool that should be off was called, the working tree changed during the review, or the reviewer's tools could not be limited. | Fix the cause the report names and rerun. Nothing was judged. |
+| `open findings` | A valid P0-P2 finding that belongs to the task is not fixed, or Claude and Codex disagree on a finding for the second time. A defect outside the task does not count here; see two rows down. | Read those findings and decide. |
+| `fixes not re-reviewed` | Claude fixed findings in the last allowed round, or the loop was stopped, so no review has seen the latest code. | Rerun the loop, or read the last fixes yourself. |
+| `clean with unverified items` | No finding is open, but something rests on Claude alone: a criterion the reviewer could not check, a finding Claude rejected or moved to P3, a new file the review never mentioned, or a defect left as outside the task. | Read the listed items. This is the usual result when Codex cannot run your tests. |
+| `verified` | The last review saw the final code and found nothing to fix, the reviewer checked every criterion, and Claude overrode nothing. | Read the diff and commit. |
+
+The checklist names who verified each criterion: the reviewer, the implementer, which
+is Claude's own test or check, or nobody. A criterion that Claude fixed counts as
+verified by the reviewer only once a later review has seen the fix. "Implementer
+overrides" at the top of the report lists every finding Claude rejected and every
+finding Codex rated P0 to P2 that Claude rated P3. No reviewer has confirmed those
+calls; they are yours to check.
 
 Commands and options:
 
@@ -360,7 +379,11 @@ folder name, for example `git worktree add ../myrepo-task2 -b task2`. The folder
 decides the log folder.
 
 Two repositories with the **same folder name** in different places share one log
-folder and overwrite each other's `task.md`. Rename one of the folders.
+folder and overwrite each other's `task.md`. Rename one of the folders. The loop
+catches the mix-up before it sends anything: the first repository to use a log folder
+leaves its path in `repository-root.txt` there, and the loop stops when that file
+names another repository. By then the second task may already have overwritten
+`task.md`. If you moved a repository, delete `repository-root.txt` and run again.
 
 ## 11. What Codex is told
 
@@ -426,12 +449,13 @@ Everything is in `~/.claude/codex-reviews/<repo>/`:
 
 | File | Contents |
 |---|---|
+| `repository-root.txt` | The path of the repository this folder belongs to. The loop stops when another repository with the same folder name tries to use the folder. |
 | `task.md` | The current task file. Overwritten when the next task starts. |
 | `<run>-task.md` | The task file as it stood at the final report. |
 | `<run>-round<N>-prompt.md` | The exact prompt sent to Codex. |
 | `<run>-round<N>-codex.md` | Codex's review. |
 | `<run>-round<N>-codex.log` | Codex's progress, the commands it ran, and the session id. |
-| `<run>-round<N>-claude.md` | Claude's triage table and requirement checklist. |
+| `<run>-round<N>-claude.md` | Claude's triage of the round, in a fixed shape: one table row per finding with Codex's label, Claude's label, the decision, the evidence, and the proof; the requirement checklist; and a judge record that identifies the review: plugin version, prompt hash, commit, fingerprint, web search mode, and what the reviewer ran. |
 
 In the `.log` header, `sandbox:` must read `read-only`. The header's `model:` line
 is the session model; the review itself runs on the review model, which the report
@@ -448,8 +472,10 @@ Get-Content -Wait -Tail 30 "$HOME\.claude\codex-reviews\<repo>\<run>-round1-code
 ```
 
 `codex resume <session-id>` opens Codex's full session afterwards. The raw records
-are in `~/.codex/sessions/<yyyy>/<mm>/<dd>/rollout-*.jsonl`; a review writes two,
-and the review thread's first line contains `"subagent":"review"`.
+are in `~/.codex/sessions/<yyyy>/<mm>/<dd>/`, named `rollout-*.jsonl`. Codex stores
+older ones compressed, as `rollout-*.jsonl.zst` (observed 2026-11-12). A review
+writes two records, and the review thread's first line contains
+`"subagent":"review"`.
 
 ## 13. Updating and removing
 
@@ -508,6 +534,7 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
 | The loop stops: no sandboxed shell command ran | Codex could not start its sandboxed shell, so the reviewer could not read your code through the sandbox, whatever it wrote. Run `codex update` and rerun. On Windows, see the Windows sandbox page above. `--allow-tools` does not get around this: the loop stops then too. |
 | The loop stops: the reviewer's tools cannot be limited | The message says which of three causes applies. A tool is still offered to the reviewer: some Codex configuration turns a connector on by name, or an MCP server stayed on, and the message names the tool; turn it off there. Or an MCP server cannot be turned off: `codex mcp list --json` failed, printed something the loop cannot read in full, or printed a server name with a character other than letters, digits, `_`, `-`, and `.`. Or Codex could not show which tools a session would have, or showed a list the loop cannot read or one without any tool: update Codex. `--allow-tools` runs the review with your own tools instead. |
 | The loop stops: a tool that should be off was called | A connector, plugin, or MCP tool appeared in Codex's log although the loop turned them off. A Codex update may have changed how they are disabled. Report it in the repository's issues with your Codex version. |
+| The loop stops: the log folder belongs to another repository | Two repositories whose folders have the same name would share one task file and one set of logs. Rename one of the folders. If you moved the repository, delete `repository-root.txt` in the log folder the message names, and rerun. Do the same when the message says that file is empty or cannot be read, after checking that no other repository uses the folder. |
 | The reviewer says it has no web search tool | You passed `--web off`, or a Codex update renamed the search connector. See [What the reviewer can use](#what-the-reviewer-can-use). |
 
 ## 15. Known limits
@@ -536,4 +563,9 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
   before deciding that a tool that should be off was not called.
 - **Severity labels vary between runs.** Claude assigns the final label.
 - **Three rounds is a hard cap.** Fixes made in the last round have passed the
-  checks but not another review. The final report says so.
+  checks but not another review. The final report's verdict is then `fixes not
+  re-reviewed`.
+- **Who verified a criterion is read from the review's text.** Claude marks a
+  criterion as verified by the reviewer when the review says it checked it and Claude
+  has not changed it since. That is Claude's reading of a summary, not a record of
+  what Codex did.
