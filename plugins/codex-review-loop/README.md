@@ -51,8 +51,8 @@ https://github.com/veliksergey/codex-review-loop
   it, reviews lose web search, and the reviewer says so in its summary.
 - **Writes** review logs and task files to `~/.claude/codex-reviews/<repo>/`, outside
   the reviewed repository, with one file there that records which repository the
-  folder belongs to; rejected findings to `docs/reviews/decisions.md` inside the
-  repository; and, through `setup`, rule blocks in the three global files above, only
+  folder belongs to and, for each run, a summary without any text of a finding;
+  rejected findings to `docs/reviews/decisions.md` inside the repository; and, through `setup`, rule blocks in the three global files above, only
   after you approve each change.
 - **Never** commits, pushes, or runs release scripts. The loop fingerprints the
   working tree before and after every review and stops if anything changed. It also

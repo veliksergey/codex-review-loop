@@ -5,6 +5,24 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.6.0 — 2026-11-16
+
+- The loop writes a summary of each run, `<run>-summary.json`, to the log folder at the
+  final report: the mode and options, the verdict, the checklist, and for each round its
+  duration, its fingerprint, whether it gave a usable review, what the reviewer ran, and
+  each finding's tag, labels, and decision. The shape is fixed by the new
+  `summary-template.json`, and the summary holds no text of a finding.
+- The loop notices when the request or the acceptance criteria change during a run. The
+  new `task-hash.sh` prints a hash of those two sections of the task file; the loop
+  takes it before every round and before the final report, and tells you when it
+  changes.
+- The command that runs Codex prints the time before and after, so a round's duration
+  is recorded.
+- New in the repository, not in the plugin: `tests/loop_stats.py` prints figures about
+  your own review runs from one or more log folders. It reads the new summaries, and
+  older runs from their review files, logs, and triage notes. It needs Python 3.8 or
+  newer, writes no file, and its output is private: see the guide, section 12.
+
 ## 0.5.0 — 2026-11-13
 
 Run `/codex-review-loop:setup` after updating: the block of rules it installs for

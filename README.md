@@ -213,10 +213,10 @@ through the repository's issues.
 | Path | Contents |
 |---|---|
 | `.claude-plugin/marketplace.json` | The marketplace catalog: one plugin. |
-| `plugins/codex-review-loop/skills/codex-loop/` | The review loop: `SKILL.md`, the review prompt sent to Codex, the task file template, and four small shell scripts it runs. |
+| `plugins/codex-review-loop/skills/codex-loop/` | The review loop: `SKILL.md`, the review prompt sent to Codex, the templates for the task file, the triage note, and the run summary, and seven small shell scripts it runs. |
 | `plugins/codex-review-loop/skills/setup/` | The setup command and the rule templates it installs. |
 | `plugins/codex-review-loop/README.md` | Short README inside the plugin folder, shown by Anthropic's plugin directory. |
-| `tests/` | Shell tests for this repository; not part of the installed plugin. |
+| `tests/` | Shell tests for this repository, and `loop_stats.py`, a Python script that prints figures about your own review runs from the log folder. Not part of the installed plugin. |
 | `docs/GUIDE.md` | Full setup and usage guide. |
 | `docs/CHEATSHEET.md` | One-page reference. |
 | [`docs/manual-install/`](docs/manual-install/README.md) | Installing from a copy you have reviewed, or by hand. |

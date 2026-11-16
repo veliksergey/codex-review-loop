@@ -112,7 +112,8 @@ expect "a printed look-alike and a real call of one tool: both lines are listed"
   "tool=x/y calls=2 lines=20,27" "other_tool_calls=2"
 
 # Windows line endings and a byte that is not valid text.
-{ header; prompt; ran_ok; printf 'odd byte \377 here\n'; tool x/y; final; } | sed 's/$/\r/' > "$tmp/crlf.log"
+{ header; prompt; ran_ok; printf 'odd byte \377 here\n'; tool x/y; final; } |
+  LC_ALL=C awk '{ printf "%s\r\n", $0 }' > "$tmp/crlf.log"
 out="$(bash "$rf" "$tmp/crlf.log")"; rc=$?
 if [ $rc -eq 0 ]; then pass "CRLF log with a non-text byte: exits 0"; else fail "CRLF log: exit $rc"; fi
 expect "CRLF log: same facts, no carriage return in the values" "$out" \

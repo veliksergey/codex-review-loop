@@ -13,9 +13,9 @@ Code implements; the Codex CLI reviews read-only. Users install it with
 | `.claude-plugin/marketplace.json` | Marketplace catalog with one entry, `codex-review-loop`. |
 | `plugins/codex-review-loop/.claude-plugin/plugin.json` | Plugin manifest, including `version`. |
 | `plugins/codex-review-loop/README.md` | The plugin-folder README. Anthropic's directory shows it as the listing; it must stay at least 40 words outside code blocks and describe what the plugin runs, sends, and writes. |
-| `plugins/codex-review-loop/skills/codex-loop/` | The review loop skill, the review prompt sent to Codex, the task file template, the triage file template, and six scripts: `fingerprint.sh`, the before/after working-tree check; `instruction-changes.sh`, which lists the instruction files a change edits; `log-dir.sh`, which prints the log folder and stops when another repository with the same folder name already uses it; `mcp-off-flags.sh`, which prints the flag that turns the configured MCP servers off; `tool-flags.sh`, which builds the flags that limit the reviewer's tools and checks them against Codex before a review starts; and `round-facts.sh`, which reads what the reviewer ran from Codex's log and identifies the round by its prompt and commit. |
+| `plugins/codex-review-loop/skills/codex-loop/` | The review loop skill, the review prompt sent to Codex, the task file template, the triage file template, the run summary template, and seven scripts: `fingerprint.sh`, the before/after working-tree check; `instruction-changes.sh`, which lists the instruction files a change edits; `log-dir.sh`, which prints the log folder and stops when another repository with the same folder name already uses it; `task-hash.sh`, which hashes the request and the acceptance criteria of the task file; `mcp-off-flags.sh`, which prints the flag that turns the configured MCP servers off; `tool-flags.sh`, which builds the flags that limit the reviewer's tools and checks them against Codex before a review starts; and `round-facts.sh`, which reads what the reviewer ran from Codex's log and identifies the round by its prompt and commit. |
 | `plugins/codex-review-loop/skills/setup/` | The setup skill and the blocks it installs in users' global files. |
-| `tests/` | Shell tests. Not shipped with the plugin. |
+| `tests/` | Shell tests, and repository tooling in Python: `loop_stats.py`, which prints figures about a user's own review runs, with its tests. Not shipped with the plugin. |
 | `docs/` | User documentation. `docs/reviews/decisions.md` records rejected review findings. |
 
 ## Commands
@@ -30,6 +30,8 @@ There is no build or lint. These are the checks:
 | Fingerprint script | `bash tests/fingerprint.test.sh` | Exit 0, prints `all passed` |
 | Instruction files script | `bash tests/instruction-changes.test.sh` | Exit 0, prints `all passed` |
 | Log folder script | `bash tests/log-dir.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
+| Task hash script | `bash tests/task-hash.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
+| Statistics script | `bash tests/loop-stats.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run. Without Python 3.8 or newer the whole test is one skip |
 | Round facts script | `bash tests/round-facts.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | MCP flags script | `bash tests/mcp-off-flags.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | Tool flags script | `bash tests/tool-flags.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
@@ -54,6 +56,12 @@ changes under "Documentation only".
   numbers derived from anyone's review logs or Codex session records, and no details
   of a real computer such as its configuration or installed tools. Evidence of that
   kind may guide a change, but it stays outside the repository.
+- **Python stays in `tests/`.** Repository tooling may use Python 3 with the standard
+  library only. Nothing under `plugins/` may need Python, and a system without it must
+  still pass every check, with the Python tests reported as skipped.
+- **Review figures stay private.** `tests/loop_stats.py` prints figures about one
+  person's reviews and writes no file. Its output, and anything else read from a real
+  log folder, is never committed. Tests use logs they build themselves.
 - **Portable shell commands.** Commands in skills must work in bash on macOS, on
   Linux, and in Git Bash on Windows. Prefer git built-ins over platform tools: for
   example `git hash-object --stdin`, not `sha1sum`. No GNU-only flags.

@@ -10,7 +10,7 @@ loop; they differ in how much of the plugin system you use.
 
 ## What you would be trusting
 
-The plugin is the folder `plugins/codex-review-loop/`, 23 files:
+The plugin is the folder `plugins/codex-review-loop/`, 25 files:
 
 | Files | What they are |
 |---|---|
@@ -21,6 +21,8 @@ The plugin is the folder `plugins/codex-review-loop/`, 23 files:
 | `skills/codex-loop/review-prompt.md` | The prompt sent to Codex. |
 | `skills/codex-loop/task-template.md` | The shape of the task file Claude writes. |
 | `skills/codex-loop/triage-template.md` | The shape of the note Claude writes after each review round. |
+| `skills/codex-loop/summary-template.json` | The shape of the summary Claude writes at the end of each run. |
+| `skills/codex-loop/task-hash.sh` | A script that prints a hash of the request and the acceptance criteria in your task file, so that a change to either during a run is noticed. It changes nothing. |
 | `skills/codex-loop/log-dir.sh` | A script that prints the log folder for your repository and writes one file there, holding the repository's path. It stops when another repository already uses that folder. |
 | `skills/codex-loop/fingerprint.sh` | A script of read-only `git` commands that fingerprints your working tree before and after each review. |
 | `skills/codex-loop/mcp-off-flags.sh` | A script that asks Codex for its configured MCP servers, with `codex mcp list`, and prints the flag that turns them off for a review. It changes nothing. |
@@ -61,7 +63,7 @@ When those commands run:
    such as `C:\src`, or run
    `git -c core.longpaths=true clone https://github.com/veliksergey/codex-review-loop.git`.
 
-2. List what the plugin contains. Expect the 23 files above:
+2. List what the plugin contains. Expect the 25 files above:
 
    ```bash
    git ls-files plugins/
@@ -73,7 +75,7 @@ When those commands run:
    grep -rnE '"(hooks|mcpServers|lspServers|monitors)"' .claude-plugin plugins
    ```
 
-4. Read the six scripts and the two `SKILL.md` files. The templates are short
+4. Read the seven scripts and the two `SKILL.md` files. The templates are short
    enough to skim.
 
 5. Note the commit you reviewed, so you can compare against it later:

@@ -2,7 +2,7 @@
 name: codex-loop
 description: Run the Codex (ChatGPT) code-review loop on the current uncommitted changes, on a branch compared with a base, or on specific files and folders; a target with no uncommitted changes is audited as existing code without a task file. Codex reviews read-only against the user's request in the task file; Claude verifies every finding, fixes valid P0-P2 findings with regression tests, lists P3 items for the user, and re-reviews, up to 3 rounds. Use after finishing an implementation task in a git repository, or when the user asks for a Codex review, a ChatGPT review, a second opinion, or a review loop.
 argument-hint: "[paths...] [--base <ref>] [--focus \"text\"] [--rounds N] [--model <slug>] [--effort <level>] [--web cached|live|off] [--allow-tools] [--report-only]"
-allowed-tools: Bash(codex login status), Bash(git rev-parse --show-toplevel), Bash(git status --short --untracked-files=all), Bash(git diff), Bash(git diff --cached), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" live), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" off), Bash(bash "${CLAUDE_SKILL_DIR}/round-facts.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/log-dir.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/instruction-changes.sh"), Bash(date +%Y%m%d-%H%M%S), Bash(wc -l), Read, Edit(~/.claude/codex-reviews/**), Edit(docs/reviews/decisions.md), Grep, Glob
+allowed-tools: Bash(codex login status), Bash(git rev-parse --show-toplevel), Bash(git status --short --untracked-files=all), Bash(git diff), Bash(git diff --cached), Bash(bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" live), Bash(bash "${CLAUDE_SKILL_DIR}/tool-flags.sh" off), Bash(bash "${CLAUDE_SKILL_DIR}/round-facts.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/log-dir.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/instruction-changes.sh"), Bash(bash "${CLAUDE_SKILL_DIR}/task-hash.sh"), Bash(date +%Y%m%d-%H%M%S), Bash(wc -l), Read, Edit(~/.claude/codex-reviews/**), Edit(docs/reviews/decisions.md), Grep, Glob
 ---
 
 # Codex review loop
@@ -109,19 +109,18 @@ all rounds, with `date +%Y%m%d-%H%M%S`. It is `RUN`.
 
 Files in `LOG_DIR`:
 
-- `repository-root.txt`: the root path of the repository this folder belongs to,
-  written by `log-dir.sh`. Leave it alone.
+- `repository-root.txt`: which repository this folder belongs to. Leave it alone.
 - `task.md`: the current task file, written at task start and updated until the
   loop ends. Overwritten when the next task starts.
-- `<RUN>-task.md`: archived copy of the task file as it stood at the final report.
-  In audit mode: a one-line note naming the target and stating that no task file
-  was used.
+- `<RUN>-task.md`: archived copy of the task file as it stood at the final report,
+  or a one-line note when no task file was used.
 - Per round `N` (substitute the round number yourself):
   - `<RUN>-round<N>-prompt.md`: the exact prompt sent to Codex.
   - `<RUN>-round<N>-codex.md`: Codex's final review, written by Codex through `-o`.
   - `<RUN>-round<N>-codex.log`: Codex's progress log and session id (stderr).
   - `<RUN>-round<N>-claude.md`: your triage table, requirement checklist, and judge
     record.
+- `<RUN>-summary.json`: the run in a fixed shape, written at the final report.
 
 ## 4. Run a round
 
@@ -129,8 +128,14 @@ Estimate the size first with `git status --short --untracked-files=all | wc -l`,
 `git diff --stat <ref>...HEAD` in branch mode, or the number of target files in
 paths mode. Up to 10 files: run in the foreground with the Bash tool and
 `timeout: 600000`. More than 10 files, a whole folder, or unknown size: run with
-`run_in_background: true` and continue when the completion notification arrives.
-Tell the user which you chose and that a review usually takes one to several minutes.
+`run_in_background: true` and continue when the completion notification arrives. Say
+which you chose.
+
+When a task file is used, run `bash "${CLAUDE_SKILL_DIR}/task-hash.sh"` exactly as
+written before every round and before the final report. It prints a hash of the request
+and the acceptance criteria. Keep the first value. A later value that differs means one
+of the two changed during this run: tell the user at once, show both sections as they
+now stand, and name the change in the final report. If it exits non-zero, stop.
 
 ### Build the prompt
 
@@ -202,12 +207,12 @@ One command runs Codex and then prints the working-tree fingerprint, so nothing 
 change the tree between the review and the second fingerprint:
 
 ```bash
-codex exec review -c 'sandbox_mode="read-only"' <tool flags> -o "$LOG_DIR/$RUN-round$N-codex.md" - < "$LOG_DIR/$RUN-round$N-prompt.md" 2> "$LOG_DIR/$RUN-round$N-codex.log"; echo "codex exit: $?"; bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"
+date +%s; codex exec review -c 'sandbox_mode="read-only"' <tool flags> -o "$LOG_DIR/$RUN-round$N-codex.md" - < "$LOG_DIR/$RUN-round$N-prompt.md" 2> "$LOG_DIR/$RUN-round$N-codex.log"; echo "codex exit: $?"; date +%s; bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"
 ```
 
-Codex layers this prompt on top of its own built-in review guidelines: the prompt
-arrives as the task message, the guidelines stay as base instructions. Verified
-2026-09-08 from the review thread transcript.
+The number it prints first and the number after the `codex exit:` line are times in
+seconds. Their difference is the round's duration. Codex layers the prompt on top of its
+own built-in review guidelines, which stay as base instructions (verified 2026-09-08).
 
 `<tool flags>` decide which tools the reviewer has besides its sandboxed shell. Before
 every round, not only the first, get them from the one command in this table that fits
@@ -225,22 +230,16 @@ Codex's plugins, its connectors other than web search, and every configured MCP 
 Before it prints, it asks Codex which MCP servers are enabled and which tools a session
 with those flags would be offered, and it prints nothing if anything besides web search
 is still on, for example a connector that a configuration file turns on by name. Run it
-again before each round:
-a fix, or the user, can change a Codex configuration file between rounds. If it exits
-non-zero, stop: the reviewer's tools cannot be limited. Show the user its message and
-say that `--allow-tools` runs the review with their own tools instead.
+again before each round: a fix, or the user, can change a Codex configuration file
+between rounds. If it exits non-zero, stop: the reviewer's tools cannot be limited.
+Show the user its message and say that `--allow-tools` runs the review with their own
+tools instead.
 
 Web search reaches the reviewer as a Codex connector, which is why the default keeps
 that one connector on. Observed 2026-11-13: with the apps feature disabled the reviewer
-has no web tool; `cached` and `live` made no difference to what the search tool
-fetched; an entry for a connector in a configuration file turns it on even without an
-`enabled` key; and `codex debug prompt-input` lists the tools a session would be
-offered, those of connectors and MCP servers among them. Codex declares tools there in
-three places: by name, in its list of tools loaded on demand, and, for the scripts it
-runs, inside a tool description. A configuration can hide a connector or a server from
-the first two with `omit_tools_from` and leave it to scripts. The script reads all
-three, and not the instructions printed beside them: a tool that instructions only
-mention does not count.
+has no web tool, and `cached` and `live` made no difference to what the search tool
+fetched. The script reads the tools Codex declares for a session, in each place it
+declares them, and not the instructions printed beside them.
 
 Rules for the command:
 
@@ -266,10 +265,8 @@ Rules for the command:
 - Check that the reviewer changed nothing. Before the run, record the output of
   `bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"`, run exactly as written: four hashes,
   of the file status, the unstaged diff, the staged diff, and the contents of
-  untracked files, with untracked links recorded by where they point. The script
-  works from the repository root whatever the current folder is, and needs only bash,
-  git, and the standard `find`, `readlink`, and `sort`. The Codex command prints the
-  second fingerprint after its `codex exit:` line; edit nothing in the repository
+  untracked files, with untracked links recorded by where they point. The Codex
+  command prints the second fingerprint at its end; edit nothing in the repository
   while it runs, and compare the two. If the second run printed an error in place of
   four hashes, stop the loop and report it: a fingerprint that failed proves nothing.
   If any hash differs, stop the loop, show `git status --short`, and tell the user
@@ -425,6 +422,17 @@ with one line naming the scope and the reason, for example "Audit of <paths>,
 untouched" or "<date>: reviewed without a task file at the user's choice; task.md
 did not exist".
 
+Then write `$LOG_DIR/$RUN-summary.json` with the Write tool, in the shape of
+[summary-template.json](summary-template.json)
+(`${CLAUDE_SKILL_DIR}/summary-template.json`): the same keys, each `<...>` replaced by
+one of the values it names. It has one entry per round that ran, with its seconds, its
+fingerprint, the lines `round-facts.sh` printed, and one entry per row of that round's
+findings table: tag, both labels, and decision word, copied from the triage file.
+`reviewed` is false, and the findings empty, for a round stopped as failed or without a
+review. `unverified` is true when the review said it could not run or verify something.
+Put no text of a finding into it. Without a task file, `task_file` is false, both hashes
+are `none`, and the checklist is empty. Write it for every run that reached step 4.
+
 Lead with one verdict: the first row of this table that fits the run.
 
 | The run ended like this | Verdict |
@@ -483,12 +491,9 @@ short `/codex-loop` also works unless a personal skill of the same name exists.
 /codex-loop
 /codex-loop --report-only
 /codex-loop src/mail
-/codex-loop src/ui/dialogs --report-only
 /codex-loop app/sso features/sso --focus "token audience, replay, open redirects"
 /codex-loop --base main
-/codex-loop --rounds 2 --model <slug>
-/codex-loop --effort xhigh
-/codex-loop features/auth --model <slug> --effort xhigh
+/codex-loop features/auth --rounds 2 --model <slug> --effort xhigh
 /codex-loop --web off
 /codex-loop --allow-tools
 ```

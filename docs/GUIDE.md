@@ -417,6 +417,12 @@ The prompt also keeps the change from deciding how it is judged:
   specific input is needed.
 - **Existing defects count in an audit.** When you review chosen files or folders, the
   reviewer is told that defects already in them are in scope, changed recently or not.
+- **The request and the criteria are watched.** Before every round, and before the
+  final report, the loop takes a hash of your request and the acceptance criteria in
+  the task file: everything from the request heading to the out-of-scope heading, so a
+  request you pasted with headings of its own counts as a whole. If the value changes
+  during a run, Claude tells you at once and shows both sections. Rewording a criterion
+  to make a finding go away is against the rules; this makes it visible.
 
 Observed on 2026-11-13 in seeded reviews of a made-up repository, one run each: the
 reviewer reported a defect that a decision excused, one that an edited `AGENTS.md`
@@ -477,6 +483,7 @@ Everything is in `~/.claude/codex-reviews/<repo>/`:
 | `repository-root.txt` | The path of the repository this folder belongs to. The loop stops when another repository with the same folder name tries to use the folder. |
 | `task.md` | The current task file. Overwritten when the next task starts. |
 | `<run>-task.md` | The task file as it stood at the final report. |
+| `<run>-summary.json` | The run in a fixed shape, written at the final report: the mode and options, a hash of the request and criteria at the start and at the end, the verdict, the checklist, and for each round its duration, its fingerprint, whether it gave a usable review, what the reviewer ran, and each finding's tag, labels, and decision. It holds no text of a finding. |
 | `<run>-round<N>-prompt.md` | The exact prompt sent to Codex. |
 | `<run>-round<N>-codex.md` | Codex's review. |
 | `<run>-round<N>-codex.log` | Codex's progress, the commands it ran, and the session id. |
@@ -501,6 +508,31 @@ are in `~/.codex/sessions/<yyyy>/<mm>/<dd>/`, named `rollout-*.jsonl`. Codex sto
 older ones compressed, as `rollout-*.jsonl.zst` (observed 2026-11-12). A review
 writes two records, and the review thread's first line contains
 `"subagent":"review"`.
+
+### Figures about your own reviews
+
+The logs answer questions about how the loop works for you: how many rounds a run
+takes, how often the first round is clean, which checks produce findings, how often
+Claude overrides the reviewer, what the reviewer ran, and how long a round takes. A
+script in this repository prints them. It is not part of the installed plugin, so run
+it from a clone, with Python 3.8 or newer:
+
+```bash
+python tests/loop_stats.py ~/.claude/codex-reviews/<repo>
+```
+
+Give it one log folder or several; without one it reads the folder of the repository
+you are in. A run that has a `<run>-summary.json` is read from that file. A summary
+that does not fit its shape or contradicts itself, for example by calling a round
+reviewed in which no sandboxed command ran, is named with the reason and not used.
+Such a run, and every older run, is read from its review files, logs, and triage
+notes, which give fewer answers: what the reviewer reported comes from the review file,
+and decisions and final labels are known only from a summary or from a triage note in
+the fixed shape that lists the same findings. A round that gave no usable review,
+because Codex failed, its review is missing, its log cannot be read, or no sandboxed
+command ran, is counted on its own line and enters no figure about findings: an unknown
+result is not a clean one. The script prints to the terminal and writes no file. The
+figures describe your own work; keep them out of any repository.
 
 ## 13. Updating and removing
 
@@ -560,6 +592,7 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
 | The loop stops: the reviewer's tools cannot be limited | The message says which of three causes applies. A tool is still offered to the reviewer: some Codex configuration turns a connector on by name, or an MCP server stayed on, and the message names the tool; turn it off there. Or an MCP server cannot be turned off: `codex mcp list --json` failed, printed something the loop cannot read in full, or printed a server name with a character other than letters, digits, `_`, `-`, and `.`. Or Codex could not show which tools a session would have, or showed a list the loop cannot read or one without any tool: update Codex. `--allow-tools` runs the review with your own tools instead. |
 | The loop stops: a tool that should be off was called | A connector, plugin, or MCP tool appeared in Codex's log although the loop turned them off. A Codex update may have changed how they are disabled. Report it in the repository's issues with your Codex version. |
 | The loop stops: the log folder belongs to another repository | Two repositories whose folders have the same name would share one task file and one set of logs. Rename one of the folders. If you moved the repository, delete `repository-root.txt` in the log folder the message names, and rerun. Do the same when the message says that file is empty or cannot be read, after checking that no other repository uses the folder. |
+| The loop stops: the request and the criteria cannot be found in the task file | The task file needs a `## Request` heading and, below it, a `## Acceptance criteria` heading. A fenced block or an HTML comment that never closes hides every heading under it: close it, or quote the request line by line with `>`. |
 | The reviewer says it has no web search tool | You passed `--web off`, or a Codex update renamed the search connector. See [What the reviewer can use](#what-the-reviewer-can-use). |
 
 ## 15. Known limits
@@ -591,6 +624,16 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
   deleted stored data, and one that let a user delete another user's data, P1, although
   the prompt's scale makes both P0 and says so. Claude assigns the final label from the scale, and
   the triage note keeps both labels.
+- **A change to the criteria before the loop starts is not seen.** The loop takes its
+  first hash of the request and the criteria when it starts, not when Claude first
+  showed them to you. Read the criteria Claude prints at the start of a task, and the
+  request the loop prints before round 1.
+- **The run summary is written by Claude.** It copies labels and decisions from its
+  own triage notes into `<run>-summary.json`. The statistics script checks the shape of
+  that file and that it does not contradict itself, not whether it matches the notes.
+  The summary keeps the hash of the request and the criteria at the start and at the
+  end of a run: a change that was undone in between is reported by the loop when it
+  happens, and does not show in the summary.
 - **Codex still loads the instruction files from disk.** The loop cannot change which
   `AGENTS.md` Codex reads. It tells the reviewer which instruction files the change
   edits and to apply their committed versions; whether the reviewer does so is up to

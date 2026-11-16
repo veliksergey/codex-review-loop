@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "run": "<the run id>",
+  "plugin": "<the plugin's version, or unknown>",
+  "mode": "<uncommitted, branch, paths, or audit>",
+  "task_file": true,
+  "report_only": false,
+  "rounds_limit": 3,
+  "web": "<cached, live, or off>",
+  "tools": "<default, or allowed>",
+  "task_hash_start": "<what task-hash.sh printed before round 1, or none>",
+  "task_hash_end": "<what task-hash.sh printed before the final report, or none>",
+  "verdict": "<verified, clean with unverified items, fixes not re-reviewed, open findings, or review failed>",
+  "rounds": [
+    {
+      "round": 1,
+      "seconds": 0,
+      "review_model": "<the review model of this round>",
+      "reviewed": true,
+      "unverified": false,
+      "fingerprint": "<the four hashes of this round's fingerprint, separated by spaces, or none>",
+      "facts": [
+        "<each line round-facts.sh printed for this round, unchanged, one string per line>"
+      ],
+      "findings": [
+        {
+          "tag": "<criterion, beyond request, handoff, or none>",
+          "reviewer_label": "<P0, P1, P2, P3, or none>",
+          "final_label": "<P0, P1, P2, or P3>",
+          "decision": "<fixed, not fixed, listed for the user, rejected, outside scope, or disputed twice>"
+        }
+      ]
+    }
+  ],
+  "checklist": [
+    {
+      "criterion": 1,
+      "state": "<met, not met, fixed this round, or not verifiable>",
+      "verified_by": "<reviewer, implementer, or nobody>"
+    }
+  ]
+}

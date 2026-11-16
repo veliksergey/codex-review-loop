@@ -94,6 +94,8 @@ The final report starts with one of these. The first that fits is used.
 | Rejected findings | `<repo>/docs/reviews/decisions.md` |
 | Task file and logs | `~/.claude/codex-reviews/<repo>/` |
 | Codex sessions | `~/.codex/sessions/`; open one with `codex resume <session-id>` |
+| Summary of each run | `~/.claude/codex-reviews/<repo>/<run>-summary.json` |
+| Figures about your own runs | From a clone of this repository: `python tests/loop_stats.py ~/.claude/codex-reviews/<repo>`. Private; never commit the output. |
 
 ## Model choice, first match wins
 
