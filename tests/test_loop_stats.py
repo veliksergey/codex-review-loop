@@ -529,7 +529,8 @@ class LoopStatsTest(unittest.TestCase):
         self.assertIn("Read from review files, logs, and triage notes: 1.", self.line("Runs:"))
 
     def test_input_that_cannot_be_read_is_named_or_left_out_and_does_not_stop_the_report(self):
-        # A summary nested too deep to read, beside a run that can be read.
+        # A summary nested deeper than some interpreters read, beside a run that can be
+        # read. An interpreter that does read it finds no object in it.
         self.put("d-summary.json", "[" * 100000 + "]" * 100000)
         self.put("g-summary.json", json.dumps(summary(run="g")))
         # A folder where a review, a log, and a summary are expected.
@@ -537,11 +538,20 @@ class LoopStatsTest(unittest.TestCase):
             os.mkdir(os.path.join(self.folder, name))
         runs, unusable = loop_stats.collect(self.folder)
         self.assertEqual([name for name, _ in unusable], ["d-summary.json", "i-summary.json"])
-        self.assertEqual(unusable[0][1], ["nested too deep to read"])
+        self.assertIn(unusable[0][1], (["nested too deep to read"], ["the file does not hold one object"]))
         self.assertTrue(unusable[1][1][0].startswith("not JSON"), unusable[1][1])
         self.assertEqual([(run["run"], [entry["reviewed"] for entry in run["rounds"]]) for run in runs],
                          [("g", [True, True]), ("h", [False])])
         self.assertIn("Runs: 2, with 3 rounds.", self.line("Runs:"))
+
+    def test_a_summary_the_interpreter_refuses_to_read_is_named(self):
+        # How deep an interpreter reads differs, so here the reader itself refuses.
+        self.put("d-summary.json", json.dumps(summary(run="d")))
+        self.put("d-round1-codex.md", review("Reviewed. No findings."))
+        with unittest.mock.patch.object(loop_stats.json, "loads", side_effect=RecursionError):
+            runs, unusable = loop_stats.collect(self.folder)
+        self.assertEqual(unusable, [("d-summary.json", ["nested too deep to read"])])
+        self.assertEqual([run["run"] for run in runs], ["d"])
 
     def test_only_the_counts_among_the_facts_are_numbers(self):
         # A sandbox line that happens to be a number is a word like any other.

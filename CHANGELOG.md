@@ -221,6 +221,13 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-16: two tests corrected after the first run of the workflow, with no change
+  to the plugin. On macOS the run did not get past `tests/fingerprint.test.sh` and was
+  cancelled at its time limit: the last case of that test starts the test once more and
+  relied on `mktemp` reading `TMPDIR`. The case now makes `mktemp` fail itself, and a
+  run started that way can no longer start another. On Linux a case of
+  `tests/test_loop_stats.py` expected every Python to refuse a deeply nested file; it
+  now passes whether the interpreter refuses the file or reads it.
 - 2026-11-16: the README's privacy section said that only the Codex CLI sends data
   from your computer. It now also names what Claude Code itself sends to the model
   provider you run it with, the review included. The README in the plugin folder

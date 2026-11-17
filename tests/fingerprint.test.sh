@@ -30,6 +30,12 @@ make_link() {
 tmp="$(mktemp -d)" || abort "cannot create a temporary folder"
 { [ -n "$tmp" ] && [ -d "$tmp" ]; } || abort "cannot create a temporary folder"
 trap 'rm -rf -- "${tmp:?}"' EXIT
+# The last case starts this test once more with a mktemp that fails, and that run stops
+# above. If it comes here it ends, so that no run ever starts a third.
+if [ -n "${FINGERPRINT_TEST_NESTED:-}" ]; then
+  echo "setup failed: a temporary folder was made although mktemp should fail" >&2
+  exit 3
+fi
 # Keeps git from finding a repository above the temp folder.
 export GIT_CEILING_DIRECTORIES="$tmp"
 
@@ -329,15 +335,18 @@ else
 fi
 
 # This test run from inside another repository, with no usable temp folder, must stop
-# before writing: it once committed into the repository it was started from.
+# before writing: it once committed into the repository it was started from. A mktemp
+# that fails stands first on the path, because not every mktemp reads TMPDIR. Exit code
+# 2 is the stop at the temp folder; any other code means the run went on.
 victim="$tmp/victim"
-mkdir -p "$victim" || abort "mkdir $victim"
+mkdir -p "$victim" "$tmp/no-mktemp" || abort "mkdir $victim"
+printf '#!/bin/sh\nexit 1\n' > "$tmp/no-mktemp/mktemp" && chmod +x "$tmp/no-mktemp/mktemp" || abort "mktemp stand-in"
 ( cd "$victim" && g init -q . && g config core.autocrlf false &&
   echo original > .gitignore && g add .gitignore && g commit -q -m victim ) || abort "victim repository"
 head_before="$(git -C "$victim" rev-parse HEAD)"
-( cd "$victim" && TMPDIR="$tmp/missing" bash "$here/fingerprint.test.sh" ) >/dev/null 2>&1; rc=$?
+( cd "$victim" && FINGERPRINT_TEST_NESTED=1 PATH="$tmp/no-mktemp:$PATH" bash "$here/fingerprint.test.sh" ) >/dev/null 2>&1; rc=$?
 head_after="$(git -C "$victim" rev-parse HEAD)"
-if [ $rc -ne 0 ] && [ "$head_before" = "$head_after" ] && [ "$(cat "$victim/.gitignore")" = original ]; then
+if [ $rc -eq 2 ] && [ "$head_before" = "$head_after" ] && [ "$(cat "$victim/.gitignore")" = original ]; then
   pass "no temp folder: stops without touching the current repository"
 else
   fail "no temp folder: exit $rc, the current repository was changed"
