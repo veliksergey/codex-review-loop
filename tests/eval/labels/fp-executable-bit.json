@@ -1,0 +1,30 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "An untracked file is recorded by its path and the hash of its contents. Its executable bit is not part of the record, although git commits it: a change of the bit alone leaves the fingerprint the same.",
+      "trigger": "`chmod +x` on an untracked file between the two fingerprints, on a file system that keeps the bit.",
+      "place": {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "lines": [
+          45,
+          45
+        ],
+        "holds": "record F \"$f\" \"$h\" || exit 1"
+      },
+      "tag": "none",
+      "severity": "P2",
+      "why_severity": "A missing guard with a narrow effect: the mode of a new file.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/fingerprint.test.sh",
+        "env": "FINGERPRINT",
+        "script": "skills/codex-loop/fingerprint.sh",
+        "cases": [
+          "making an untracked file executable:"
+        ]
+      }
+    }
+  ]
+}

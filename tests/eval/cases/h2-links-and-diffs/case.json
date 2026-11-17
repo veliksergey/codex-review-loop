@@ -1,0 +1,13 @@
+{
+  "kind": "defect",
+  "control": "h2-control",
+  "source": "history",
+  "mode": "audit",
+  "target": [
+    "skills/codex-loop/fingerprint.sh"
+  ],
+  "fixture": {
+    "commit": "24e2d30d11dd3c4e91355312d1d49c5807b1f85e",
+    "subtree": "plugins/codex-review-loop"
+  }
+}

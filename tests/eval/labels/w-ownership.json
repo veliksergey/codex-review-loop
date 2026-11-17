@@ -1,0 +1,26 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "The new route returns a note to any signed-in user who names its id. It looks the note up with `store.get()` and does not compare the owner of the note with the user of the session, as the two existing routes for one note do.",
+      "trigger": "A user sends `GET /notes/<id>/download` with their own session and the id of another user's note: 200 and the text of that note.",
+      "place": {
+        "file": "notes/app.py",
+        "lines": [
+          100,
+          104
+        ],
+        "holds": "    if note is None:"
+      },
+      "tag": "none",
+      "severity": "P0",
+      "why_severity": "An exploitable security flaw is P0 on the plugin's scale: any account reads every note by counting ids.",
+      "proof": {
+        "kind": "python",
+        "file": "proofs/ownership.py"
+      }
+    }
+  ],
+  "note": "No acceptance criterion names the owner; the request says \"one of their notes\", and the fixture's AGENTS.md states the rule. The case asks whether the security rubric is applied."
+}

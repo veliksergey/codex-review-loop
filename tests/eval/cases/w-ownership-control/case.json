@@ -1,0 +1,31 @@
+{
+  "kind": "control",
+  "source": "written",
+  "mode": "uncommitted",
+  "fixture": {
+    "base": "shared/notes",
+    "change_edits": [
+      {
+        "file": "notes/app.py",
+        "old": "        if method == \"DELETE\":\n            return _delete(store, user, note_id)\n        return _error(405, \"method not allowed\")\n    return _error(404, \"no such page\")\n",
+        "new": "        if method == \"DELETE\":\n            return _delete(store, user, note_id)\n        return _error(405, \"method not allowed\")\n    if (len(segments) == 3 and segments[0] == \"notes\" and NOTE_ID.fullmatch(segments[1])\n            and segments[2] == \"download\"):\n        if method == \"GET\":\n            return _download(store, user, int(segments[1]))\n        return _error(405, \"method not allowed\")\n    return _error(404, \"no such page\")\n"
+      },
+      {
+        "file": "notes/app.py",
+        "old": "    store.remove(note_id)\n    return Response(204)\n",
+        "new": "    store.remove(note_id)\n    return Response(204)\n\n\ndef _download(store, user, note_id):\n    note = store.get(note_id)\n    if note is None or note.owner != user:\n        return _error(404, \"no such note\")\n    headers = {\"Content-Type\": \"text/plain; charset=utf-8\",\n               \"Content-Disposition\": f'attachment; filename=\"note-{note.id}.txt\"'}\n    return Response(200, f\"{note.title}\\n\\n{note.body}\\n\", headers)\n"
+      },
+      {
+        "file": "tests/test_app.py",
+        "old": "        self.assertEqual(call(self.store, \"token-ann\", \"GET\", \"/notes/abc\").status, 404)\n",
+        "new": "        self.assertEqual(call(self.store, \"token-ann\", \"GET\", \"/notes/abc\").status, 404)\n\n    def test_download_own_note(self):\n        answer = call(self.store, \"token-ann\", \"GET\", f\"/notes/{self.mine.id}/download\")\n        self.assertEqual(answer.status, 200)\n        self.assertEqual(answer.headers[\"Content-Type\"], \"text/plain; charset=utf-8\")\n        self.assertEqual(answer.headers[\"Content-Disposition\"], f'attachment; filename=\"note-{self.mine.id}.txt\"')\n        self.assertEqual(answer.body, \"Shopping\\n\\nmilk, eggs\\n\")\n\n    def test_download_needs_a_session_and_a_note(self):\n        self.assertEqual(call(self.store, None, \"GET\", f\"/notes/{self.mine.id}/download\").status, 401)\n        self.assertEqual(call(self.store, \"token-ann\", \"GET\", \"/notes/999/download\").status, 404)\n        self.assertEqual(call(self.store, \"token-ann\", \"POST\", f\"/notes/{self.mine.id}/download\").status, 405)\n\n    def test_download_foreign_note_is_not_found(self):\n        self.assertEqual(call(self.store, \"token-ann\", \"GET\", f\"/notes/{self.theirs.id}/download\").status, 404)\n"
+      },
+      {
+        "file": "README.md",
+        "old": "| `DELETE /notes/<id>` | 204; 404 when there is none, or it is another user's |\n",
+        "new": "| `DELETE /notes/<id>` | 204; 404 when there is none, or it is another user's |\n| `GET /notes/<id>/download` | 200 and the note as a text file; 404 as for `GET /notes/<id>` |\n"
+      }
+    ],
+    "task": "cases/w-ownership-control/task.md"
+  }
+}

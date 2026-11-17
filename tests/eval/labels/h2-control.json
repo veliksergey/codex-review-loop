@@ -1,0 +1,5 @@
+{
+  "expect": "no must-fix finding",
+  "known_defects": [],
+  "note": "The commit that corrected them. Its script is the one still released in 0.6.0."
+}

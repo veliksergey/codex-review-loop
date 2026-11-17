@@ -29,9 +29,14 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          # The whole history: the evaluation corpus builds some cases from earlier commits.
+          fetch-depth: 0
       - name: Tools on this system
         run: |
           echo "bash $BASH_VERSION"
           git --version
       - name: Tests
+        env:
+          # Also the proofs of the evaluation corpus that take minutes on Windows.
+          EVAL_CORPUS_SLOW: "1"
         run: bash tests/run-all.sh

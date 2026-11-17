@@ -1,0 +1,12 @@
+{
+  "kind": "control",
+  "source": "history",
+  "mode": "audit",
+  "fixture": {
+    "commit": "0e2edda95297333fc185e5d6104eabfbbcf03174",
+    "subtree": "plugins/codex-review-loop"
+  },
+  "target": [
+    "skills/codex-loop"
+  ]
+}

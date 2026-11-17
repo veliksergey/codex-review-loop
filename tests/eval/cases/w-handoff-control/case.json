@@ -1,0 +1,31 @@
+{
+  "kind": "control",
+  "source": "written",
+  "mode": "uncommitted",
+  "fixture": {
+    "base": "shared/notes",
+    "change_edits": [
+      {
+        "file": "notes/app.py",
+        "old": "MAX_BODY = 10000\n",
+        "new": "MAX_BODY = 10000\nMAX_NOTES = 100\n"
+      },
+      {
+        "file": "notes/app.py",
+        "old": "    return _json(201, _show(store.add(user, title.strip(), text)))\n",
+        "new": "    if len(store.list_for_owner(user)) >= MAX_NOTES:\n        return _error(409, f\"a user can keep at most {MAX_NOTES} notes\")\n    return _json(201, _show(store.add(user, title.strip(), text)))\n"
+      },
+      {
+        "file": "tests/test_app.py",
+        "old": "        self.assertEqual(call(self.store, \"token-ann\", \"GET\", \"/notes/abc\").status, 404)\n",
+        "new": "        self.assertEqual(call(self.store, \"token-ann\", \"GET\", \"/notes/abc\").status, 404)\n\n    def test_limit_returns_409(self):\n        for number in range(99):\n            self.store.add(\"ann\", f\"Note {number}\", \"\")\n        answer = call(self.store, \"token-ann\", \"POST\", \"/notes\", {\"title\": \"One too many\"})\n        self.assertEqual(answer.status, 409)\n        self.assertIn(\"error\", json.loads(answer.body))\n        self.assertEqual(len(self.store.list_for_owner(\"ann\")), 100)\n\n    def test_limit_is_per_user(self):\n        for number in range(99):\n            self.store.add(\"ann\", f\"Note {number}\", \"\")\n        answer = call(self.store, \"token-ben\", \"POST\", \"/notes\", {\"title\": \"Still room\"})\n        self.assertEqual(answer.status, 201)\n        self.assertEqual(len(self.store.list_for_owner(\"ben\")), 2)\n"
+      },
+      {
+        "file": "README.md",
+        "old": "| `POST /notes` | 201 and the new note; 400 when the title or the body is not acceptable |\n",
+        "new": "| `POST /notes` | 201 and the new note; 400 when the title or the body is not acceptable; 409 when the user already has 100 notes |\n"
+      }
+    ],
+    "task": "cases/w-handoff-control/task.md"
+  }
+}

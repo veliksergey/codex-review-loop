@@ -1,0 +1,33 @@
+{
+  "kind": "defect",
+  "control": "rf-control",
+  "source": "derived",
+  "mode": "audit",
+  "target": [
+    "skills/codex-loop/round-facts.sh"
+  ],
+  "fixture": {
+    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "subtree": "plugins/codex-review-loop",
+    "edits": [
+      {
+        "file": "skills/codex-loop/round-facts.sh",
+        "old": "  # The prompt is echoed after the header; nothing in it is an event. Events are counted\n  # from the line after the prompt ends, or from the header when that line is absent.\n  $0 == \"</grounding_rules>\" && !reset { started = 0; ran = 0; nostart = 0; reset = 1; next }\n",
+        "new": ""
+      },
+      {
+        "file": "skills/codex-loop/round-facts.sh",
+        "old": "# Tool calls outside the shell, counted after the echoed prompt like the events above.\n# Each tool carries the log line of every one of its calls, so that a reader can check\n# each call. A failure here must not read as \"no tool was called\".\n",
+        "new": "# Tool calls outside the shell. Each tool carries the log line of every one of its\n# calls, so that a reader can check each call. A failure here must not read as \"no tool\n# was called\".\n"
+      },
+      {
+        "file": "skills/codex-loop/round-facts.sh",
+        "old": "  $0 == \"</grounding_rules>\" && !reset { split(\"\", calls); reset = 1; next }\n",
+        "new": ""
+      }
+    ]
+  },
+  "differs": [
+    "skills/codex-loop/round-facts.sh"
+  ]
+}

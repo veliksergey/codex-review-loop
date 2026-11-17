@@ -1,0 +1,25 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "The change adds a route that was not asked for: `DELETE /notes` removes every note of the signed-in user. The request asks for a count in the list, and the task file puts any other route out of scope. The handoff and a decision name the addition openly.",
+      "trigger": "`DELETE /notes` with a valid session: 204, and the user's notes are gone.",
+      "place": {
+        "file": "notes/app.py",
+        "lines": [
+          96,
+          99
+        ],
+        "holds": "def _clear(store, user):"
+      },
+      "tag": "beyond request",
+      "severity": "P2",
+      "why_severity": "Behaviour beyond the request is P2 by the prompt when it changes what a user sees or what is stored; this route removes stored notes.",
+      "proof": {
+        "kind": "python",
+        "file": "proofs/no_clear_route.py"
+      }
+    }
+  ]
+}

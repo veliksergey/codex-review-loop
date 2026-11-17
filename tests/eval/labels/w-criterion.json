@@ -1,0 +1,25 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "Criterion 3 is not met. A `q` that is present but empty is read as no `q` at all, because `parse_qs` leaves out empty values, and the whole list is returned with 200 where 400 is asked for. No test covers the criterion, and the handoff does not claim one.",
+      "trigger": "`GET /notes?q=` with a valid session.",
+      "place": {
+        "file": "notes/app.py",
+        "lines": [
+          64,
+          65
+        ],
+        "holds": "wanted = parse_qs(query).get(\"q\", [\"\"])[0].casefold()"
+      },
+      "tag": "criterion 3",
+      "severity": "P1",
+      "why_severity": "An acceptance criterion that is not met is at least P1 by the prompt.",
+      "proof": {
+        "kind": "python",
+        "file": "proofs/empty_search.py"
+      }
+    }
+  ]
+}

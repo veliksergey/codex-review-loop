@@ -221,6 +221,13 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-17: an evaluation corpus in `tests/eval/`, with no change to the plugin. It
+  holds 25 cases that a review can be run on: a defect case and the same case without
+  the defect, from this repository's own history, from one past fix put back into a
+  released file, and from a made-up project. A label beside each case says what is
+  wrong, and most labels are proved by a test. `tests/eval_corpus.py` builds a case
+  outside the repository, checks the labels, and records which labels a person agreed
+  with. Nothing in it starts a review, and no result of a review is kept here.
 - 2026-11-16: two tests corrected after the first run of the workflow, with no change
   to the plugin. On macOS the run did not get past `tests/fingerprint.test.sh` and was
   cancelled at its time limit: the last case of that test starts the test once more and

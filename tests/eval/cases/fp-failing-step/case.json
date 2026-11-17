@@ -1,0 +1,23 @@
+{
+  "kind": "defect",
+  "control": "fp-control",
+  "source": "derived",
+  "mode": "audit",
+  "target": [
+    "skills/codex-loop/fingerprint.sh"
+  ],
+  "fixture": {
+    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "subtree": "plugins/codex-review-loop",
+    "edits": [
+      {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "old": "set -euo pipefail\n",
+        "new": "set -uo pipefail\n"
+      }
+    ]
+  },
+  "differs": [
+    "skills/codex-loop/fingerprint.sh"
+  ]
+}

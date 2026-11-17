@@ -1,0 +1,23 @@
+{
+  "kind": "defect",
+  "control": "fp-control",
+  "source": "derived",
+  "mode": "audit",
+  "target": [
+    "skills/codex-loop/fingerprint.sh"
+  ],
+  "fixture": {
+    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "subtree": "plugins/codex-review-loop",
+    "edits": [
+      {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "old": "# External diff and textconv drivers from the user's git config could print nothing\n# for a real change; these flags make the diffs record exact content.\nunstaged=\"$(git -C \"$root\" diff --no-ext-diff --no-textconv --binary --full-index | git hash-object --stdin)\"\nstaged=\"$(git -C \"$root\" diff --cached --no-ext-diff --no-textconv --binary --full-index | git hash-object --stdin)\"\n",
+        "new": "unstaged=\"$(git -C \"$root\" diff --binary --full-index | git hash-object --stdin)\"\nstaged=\"$(git -C \"$root\" diff --cached --binary --full-index | git hash-object --stdin)\"\n"
+      }
+    ]
+  },
+  "differs": [
+    "skills/codex-loop/fingerprint.sh"
+  ]
+}

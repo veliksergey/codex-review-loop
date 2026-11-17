@@ -1,0 +1,28 @@
+{
+  "kind": "defect",
+  "control": "fp-control",
+  "source": "derived",
+  "mode": "audit",
+  "target": [
+    "skills/codex-loop/fingerprint.sh"
+  ],
+  "fixture": {
+    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "subtree": "plugins/codex-review-loop",
+    "edits": [
+      {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "old": "# Reads NUL-terminated paths and writes back those git does not ignore: no matching\n# pattern, or a negated one (!), which un-ignores. check-ignore exits 1 when nothing is\n# ignored, which is not a failure.\n",
+        "new": "# Reads NUL-terminated paths and writes back those git does not ignore: the ones no\n# pattern matches. check-ignore exits 1 when nothing is ignored, which is not a failure.\n"
+      },
+      {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "old": "        case \"$pat\" in '' | '!'*) printf '%s\\0' \"$path\" ;; esac\n",
+        "new": "        case \"$pat\" in '') printf '%s\\0' \"$path\" ;; esac\n"
+      }
+    ]
+  },
+  "differs": [
+    "skills/codex-loop/fingerprint.sh"
+  ]
+}

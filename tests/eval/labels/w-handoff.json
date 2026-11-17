@@ -1,0 +1,27 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "The handoff says that `test_limit_is_per_user` proves criterion 2 and that 11 tests pass. That test does not exist: the file holds 10 tests, and none adds a note as a second user while the first is at the limit. The code itself meets both criteria.",
+      "trigger": "Looking in `tests/test_app.py` for the test the handoff names, or running the tests and counting them.",
+      "place": {
+        "file": "task.md",
+        "lines": [
+          32,
+          32
+        ],
+        "holds": "`test_limit_is_per_user`: criterion 2.",
+        "in": "task"
+      },
+      "tag": "handoff",
+      "severity": "P2",
+      "why_severity": "A handoff claim about a test that the code does not support is P2 by the prompt.",
+      "proof": {
+        "kind": "python",
+        "file": "proofs/named_test.py"
+      }
+    }
+  ],
+  "note": "The task file is the same for the defect and its control; only the test file differs."
+}

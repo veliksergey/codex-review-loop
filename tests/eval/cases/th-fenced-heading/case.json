@@ -1,0 +1,33 @@
+{
+  "kind": "defect",
+  "control": "th-control",
+  "source": "derived",
+  "mode": "audit",
+  "target": [
+    "skills/codex-loop/task-hash.sh"
+  ],
+  "fixture": {
+    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "subtree": "plugins/codex-review-loop",
+    "edits": [
+      {
+        "file": "skills/codex-loop/task-hash.sh",
+        "old": "# more. A line inside a fenced block or an HTML comment is never a heading.\n",
+        "new": "# more.\n"
+      },
+      {
+        "file": "skills/codex-loop/task-hash.sh",
+        "old": "    line[NR] = $0\n    mark = $0\n    sub(/^ ? ? ?/, \"\", mark)\n    # run: the three or more ` or ~ that the line starts with, after at most three spaces.\n    run = match(mark, /^(```+|~~~+)/) ? substr(mark, 1, RLENGTH) : \"\"\n    rest = substr(mark, length(run) + 1)\n    if (comment) {\n      # An HTML comment ends with the line that holds its closing mark.\n      if (index(mark, \"-->\")) comment = 0\n    } else if (fence != \"\") {\n      # A fenced block closes on a line that holds only a run of its mark, at least as long.\n      if (rest == \"\" && substr(run, 1, 1) == substr(fence, 1, 1) && length(run) >= length(fence)) fence = \"\"\n    } else if (run != \"\" && !(substr(run, 1, 1) == \"`\" && index(rest, \"`\"))) {\n      # It opens on such a run. After backticks the line may hold no other backtick.\n      fence = run\n    } else if (substr(mark, 1, 4) == \"<!--\") comment = !index(mark, \"-->\")\n    else if (/^## Request/) head[NR] = \"request\"\n",
+        "new": "    line[NR] = $0\n    if (/^## Request/) head[NR] = \"request\"\n"
+      },
+      {
+        "file": "skills/codex-loop/task-hash.sh",
+        "old": " (a fenced block or an HTML comment that never closes hides the headings below it)",
+        "new": ""
+      }
+    ]
+  },
+  "differs": [
+    "skills/codex-loop/task-hash.sh"
+  ]
+}

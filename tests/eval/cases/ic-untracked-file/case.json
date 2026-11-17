@@ -1,0 +1,23 @@
+{
+  "kind": "defect",
+  "control": "ic-control",
+  "source": "derived",
+  "mode": "audit",
+  "target": [
+    "skills/codex-loop/instruction-changes.sh"
+  ],
+  "fixture": {
+    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "subtree": "plugins/codex-review-loop",
+    "edits": [
+      {
+        "file": "skills/codex-loop/instruction-changes.sh",
+        "old": "# Tracked files against the base, then files git does not track yet. Git quotes a path\n# that holds an unusual character, so every path stays on one line.\ntracked=\"$(git diff --no-renames --name-status \"$base\" -- \"${specs[@]}\" 2>/dev/null)\" ||\n  fail \"cannot compare the working tree with $shown\"\nuntracked=\"$(git ls-files --others --exclude-standard -- \"${specs[@]}\" 2>/dev/null)\" ||\n  fail \"cannot list the files git does not track\"\n\n# One line per path. A path named twice, as deleted and as an untracked file, exists\n# and differs from the base: it is modified.\nlines=\"$({ printf '%s\\n' \"$tracked\"; printf '%s\\n' \"$untracked\" | LC_ALL=C awk 'length($0) { print \"?\\t\" $0 }'; } |\n  LC_ALL=C awk -F '\\t' '\n  NF < 2 { next }\n  {\n    word = ($1 == \"A\" || $1 == \"?\") ? \"new\" : ($1 == \"D\") ? \"deleted\" : \"modified\"\n    path = $0; sub(/^[^\\t]*\\t/, \"\", path)\n    if (path in seen && seen[path] != word) word = \"modified\"\n    seen[path] = word\n  }\n",
+        "new": "# The files against the base. Git quotes a path that holds an unusual character, so\n# every path stays on one line.\ntracked=\"$(git diff --no-renames --name-status \"$base\" -- \"${specs[@]}\" 2>/dev/null)\" ||\n  fail \"cannot compare the working tree with $shown\"\n\n# One line per path.\nlines=\"$(printf '%s\\n' \"$tracked\" |\n  LC_ALL=C awk -F '\\t' '\n  NF < 2 { next }\n  {\n    word = ($1 == \"A\") ? \"new\" : ($1 == \"D\") ? \"deleted\" : \"modified\"\n    path = $0; sub(/^[^\\t]*\\t/, \"\", path)\n    seen[path] = word\n  }\n"
+      }
+    ]
+  },
+  "differs": [
+    "skills/codex-loop/instruction-changes.sh"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "kind": "control",
+  "source": "derived",
+  "mode": "audit",
+  "fixture": {
+    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "subtree": "plugins/codex-review-loop"
+  },
+  "target": [
+    "skills/codex-loop/task-hash.sh"
+  ]
+}

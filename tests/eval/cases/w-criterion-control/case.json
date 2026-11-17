@@ -1,0 +1,36 @@
+{
+  "kind": "control",
+  "source": "written",
+  "mode": "uncommitted",
+  "fixture": {
+    "base": "shared/notes",
+    "change_edits": [
+      {
+        "file": "notes/app.py",
+        "old": "from urllib.parse import urlsplit\n",
+        "new": "from urllib.parse import parse_qs, urlsplit\n"
+      },
+      {
+        "file": "notes/app.py",
+        "old": "        if method == \"GET\":\n            return _list(store, user)\n",
+        "new": "        if method == \"GET\":\n            return _list(store, user, parts.query)\n"
+      },
+      {
+        "file": "notes/app.py",
+        "old": "def _list(store, user):\n    return _json(200, {\"items\": [_show(note) for note in store.list_for_owner(user)]})\n",
+        "new": "def _list(store, user, query=\"\"):\n    notes = store.list_for_owner(user)\n    params = parse_qs(query, keep_blank_values=True)\n    if \"q\" in params:\n        wanted = params[\"q\"][0].casefold()\n        if not wanted:\n            return _error(400, \"q must not be empty\")\n        notes = [note for note in notes if wanted in note.title.casefold() or wanted in note.body.casefold()]\n    return _json(200, {\"items\": [_show(note) for note in notes]})\n"
+      },
+      {
+        "file": "tests/test_app.py",
+        "old": "        self.assertEqual(call(self.store, \"token-ann\", \"GET\", \"/notes/abc\").status, 404)\n",
+        "new": "        self.assertEqual(call(self.store, \"token-ann\", \"GET\", \"/notes/abc\").status, 404)\n\n    def test_search_finds_text_in_title_or_body(self):\n        self.store.add(\"ann\", \"Ideas\", \"plant a tree\")\n        self.store.add(\"ben\", \"Tree house\", \"for the garden\")\n        answer = call(self.store, \"token-ann\", \"GET\", \"/notes?q=tree\")\n        self.assertEqual([item[\"title\"] for item in json.loads(answer.body)[\"items\"]], [\"Ideas\"])\n        answer = call(self.store, \"token-ann\", \"GET\", \"/notes?q=shop\")\n        self.assertEqual([item[\"title\"] for item in json.loads(answer.body)[\"items\"]], [\"Shopping\"])\n\n    def test_search_ignores_case(self):\n        answer = call(self.store, \"token-ann\", \"GET\", \"/notes?q=MILK\")\n        self.assertEqual([item[\"title\"] for item in json.loads(answer.body)[\"items\"]], [\"Shopping\"])\n\n    def test_list_without_q_is_unchanged(self):\n        answer = call(self.store, \"token-ann\", \"GET\", \"/notes\")\n        self.assertEqual(len(json.loads(answer.body)[\"items\"]), 1)\n\n    def test_search_refuses_an_empty_q(self):\n        answer = call(self.store, \"token-ann\", \"GET\", \"/notes?q=\")\n        self.assertEqual(answer.status, 400)\n        self.assertIn(\"error\", json.loads(answer.body))\n"
+      },
+      {
+        "file": "README.md",
+        "old": "| `GET /notes` | 200, `{\"items\": [...]}`: the notes of the signed-in user |\n",
+        "new": "| `GET /notes` | 200, `{\"items\": [...]}`: the notes of the signed-in user |\n| `GET /notes?q=<text>` | 200, those of the user's notes that hold the text in the title or the body, whatever the case; 400 for an empty `q` |\n"
+      }
+    ],
+    "task": "cases/w-criterion-control/task.md"
+  }
+}

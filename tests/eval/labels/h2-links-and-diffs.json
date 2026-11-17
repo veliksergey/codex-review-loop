@@ -1,0 +1,139 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "The unstaged and the staged diff are taken with the diff settings of the person's git. An external diff tool or a textconv driver that prints the same for two states of a file hides an edit to a file that was already modified.",
+      "trigger": "`diff.external` set to a tool that prints nothing; then a second edit to a modified file.",
+      "place": {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "lines": [
+          10,
+          11
+        ],
+        "holds": "unstaged=\"$(git -C \"$root\" diff | git hash-object --stdin)\""
+      },
+      "tag": "none",
+      "severity": "P1",
+      "why_severity": "A definite gap in the check, in a configuration people use.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/fingerprint.test.sh",
+        "env": "FINGERPRINT",
+        "script": "skills/codex-loop/fingerprint.sh",
+        "cases": [
+          "external diff driver: a second unstaged edit",
+          "textconv driver: an edit"
+        ]
+      }
+    },
+    {
+      "mechanism": "On Windows, untracked links are read through. A link to a folder is a junction there, and git lists the files behind it. What stands behind the link is hashed, not where the link points: a link that is pointed at another folder with the same contents leaves the fingerprint the same, and a link to an empty folder adds nothing to it.",
+      "trigger": "On Windows: an untracked junction to a folder is pointed at another folder that holds the same files.",
+      "place": {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "lines": [
+          13,
+          15
+        ],
+        "holds": "ls-files --others --exclude-standard"
+      },
+      "tag": "none",
+      "severity": "P1",
+      "why_severity": "A definite gap on one system: a reviewer that moves a link is not noticed.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/fingerprint.test.sh",
+        "env": "FINGERPRINT",
+        "script": "skills/codex-loop/fingerprint.sh",
+        "cases": [
+          "untracked link retargeted to identical contents:",
+          "untracked link to an empty folder retargeted:"
+        ],
+        "systems": [
+          "windows"
+        ]
+      }
+    },
+    {
+      "mechanism": "On Linux and macOS the fingerprint cannot be taken at all while the tree holds an untracked link to a folder, or a link that leads nowhere. Git lists the link as a file, `git hash-object --stdin-paths` cannot read it, the script stops without printing a hash, and the loop stops with it.",
+      "trigger": "On Linux or macOS: an untracked symbolic link to a folder in the repository when the fingerprint is taken.",
+      "place": {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "lines": [
+          13,
+          15
+        ],
+        "holds": "ls-files --others --exclude-standard"
+      },
+      "tag": "none",
+      "severity": "P1",
+      "why_severity": "A definite defect on two systems: a review cannot run in a tree with such a link.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/fingerprint.test.sh",
+        "env": "FINGERPRINT",
+        "script": "skills/codex-loop/fingerprint.sh",
+        "cases": [
+          "untracked link to a folder:",
+          "dangling untracked link:"
+        ],
+        "systems": [
+          "posix"
+        ]
+      }
+    },
+    {
+      "mechanism": "An untracked file is recorded by the hash of its contents alone. Its executable bit, which git commits, is not covered.",
+      "trigger": "`chmod +x` on an untracked file between the two fingerprints.",
+      "place": {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "lines": [
+          14,
+          14
+        ],
+        "holds": "| git -C \"$root\" hash-object --stdin-paths"
+      },
+      "tag": "none",
+      "severity": "P2",
+      "why_severity": "A missing guard with a narrow effect.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/fingerprint.test.sh",
+        "env": "FINGERPRINT",
+        "script": "skills/codex-loop/fingerprint.sh",
+        "cases": [
+          "making an untracked file executable:"
+        ]
+      }
+    },
+    {
+      "mechanism": "On Windows, a link that takes the place of a folder of tracked files is not recorded. Git reads through the junction, so the tracked files look unchanged and no untracked path leads to the link.",
+      "trigger": "On Windows: a tracked folder is replaced by a junction to a folder with the same files, and the junction is then pointed at another such folder.",
+      "place": {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "lines": [
+          13,
+          15
+        ],
+        "holds": "ls-files --others --exclude-standard"
+      },
+      "tag": "none",
+      "severity": "P2",
+      "why_severity": "A probable gap on one system, which takes a junction in place of a tracked folder.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/fingerprint.test.sh",
+        "env": "FINGERPRINT",
+        "script": "skills/codex-loop/fingerprint.sh",
+        "cases": [
+          "link over tracked, unchanged files retargeted:"
+        ],
+        "systems": [
+          "windows"
+        ]
+      }
+    }
+  ],
+  "note": "Three of the five mechanisms show on one kind of system only, because a link to a folder is a junction on Windows and a symbolic link elsewhere. On Linux and macOS the old script fails where on Windows it misses a change; the changelog of 0.2.4 names both. The proofs for Linux and macOS have not been run by the implementer."
+}

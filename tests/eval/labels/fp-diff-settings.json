@@ -1,0 +1,31 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "The unstaged and the staged diff are taken with the diff settings of the person's git. An external diff tool (`diff.external`) or a textconv driver then writes the text that is hashed. A tool that prints the same for two states of a file, or nothing at all, hides an edit to a file that was already modified: all four hashes stay the same, and a write by the reviewer goes unnoticed.",
+      "trigger": "`diff.external` set to a tool that prints nothing, or a textconv driver whose output does not depend on the edited text; then a second edit to a tracked file that is already modified.",
+      "place": {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "lines": [
+          107,
+          108
+        ],
+        "holds": "unstaged=\"$(git -C \"$root\" diff --binary --full-index"
+      },
+      "tag": "none",
+      "severity": "P1",
+      "why_severity": "A definite gap in the one check that tells whether the reviewer wrote to the tree, in a configuration people use. Nothing is lost by it, so it is not P0.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/fingerprint.test.sh",
+        "env": "FINGERPRINT",
+        "script": "skills/codex-loop/fingerprint.sh",
+        "cases": [
+          "external diff driver: a second unstaged edit",
+          "textconv driver: an edit"
+        ]
+      }
+    }
+  ]
+}

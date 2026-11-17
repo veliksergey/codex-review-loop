@@ -1,0 +1,31 @@
+{
+  "kind": "control",
+  "source": "written",
+  "mode": "uncommitted",
+  "fixture": {
+    "base": "shared/notes",
+    "change_edits": [
+      {
+        "file": "notes/app.py",
+        "old": "def _list(store, user):\n    return _json(200, {\"items\": [_show(note) for note in store.list_for_owner(user)]})\n",
+        "new": "def _list(store, user):\n    notes = store.list_for_owner(user)\n    return _json(200, {\"items\": [_show(note) for note in notes], \"count\": len(notes)})\n"
+      },
+      {
+        "file": "tests/test_app.py",
+        "old": "                         {\"items\": [{\"id\": self.mine.id, \"title\": \"Shopping\", \"body\": \"milk, eggs\"}]})\n",
+        "new": "                         {\"items\": [{\"id\": self.mine.id, \"title\": \"Shopping\", \"body\": \"milk, eggs\"}],\n                          \"count\": 1})\n"
+      },
+      {
+        "file": "tests/test_app.py",
+        "old": "        self.assertEqual(call(self.store, \"token-ann\", \"GET\", \"/notes/abc\").status, 404)\n",
+        "new": "        self.assertEqual(call(self.store, \"token-ann\", \"GET\", \"/notes/abc\").status, 404)\n\n    def test_list_counts_own_notes(self):\n        self.store.add(\"ann\", \"Ideas\", \"\")\n        answer = call(self.store, \"token-ann\", \"GET\", \"/notes\")\n        self.assertEqual(json.loads(answer.body)[\"count\"], 2)\n"
+      },
+      {
+        "file": "README.md",
+        "old": "| `GET /notes` | 200, `{\"items\": [...]}`: the notes of the signed-in user |\n",
+        "new": "| `GET /notes` | 200, `{\"items\": [...], \"count\": <number>}`: the notes of the signed-in user |\n"
+      }
+    ],
+    "task": "cases/w-beyond-control/task.md"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "The name of an untracked folder is passed to `find` as its first argument, unguarded. A name that starts with a hyphen is read by `find` as part of its expression. With GNU find, `-delete` then applies to the current folder, which the script has just set to the repository's root: the working tree is deleted. With another find the fingerprint fails.",
+      "trigger": "An untracked folder named `-delete` in the repository when the fingerprint is taken.",
+      "place": {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "lines": [
+          96,
+          96
+        ],
+        "holds": "(cd \"$root\" && find \"$e\" -type l -print0)"
+      },
+      "tag": "none",
+      "severity": "P0",
+      "why_severity": "Data loss, though it takes a specific input: the plugin's scale puts that at P0.",
+      "proof": {
+        "kind": "reading",
+        "why": "Running it would delete the files of a repository, which is the defect. That `find` reads a leading hyphen as the start of its expression, and searches the current folder when no path is given, is how GNU findutils documents it; it was not run for this label."
+      }
+    }
+  ]
+}

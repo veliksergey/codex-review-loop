@@ -1,0 +1,23 @@
+{
+  "kind": "defect",
+  "control": "fp-control",
+  "source": "derived",
+  "mode": "audit",
+  "target": [
+    "skills/codex-loop/fingerprint.sh"
+  ],
+  "fixture": {
+    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "subtree": "plugins/codex-review-loop",
+    "edits": [
+      {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "old": "# record <field>...: the hash of the NUL-terminated fields, so no file name can make\n# two different trees produce the same records.\nrecord() { printf '%s\\0' \"$@\" | git hash-object --stdin; }\n",
+        "new": "# record <field>...: the hash of the fields of one record.\nrecord() { printf '%s\\n' \"$*\" | git hash-object --stdin; }\n"
+      }
+    ]
+  },
+  "differs": [
+    "skills/codex-loop/fingerprint.sh"
+  ]
+}

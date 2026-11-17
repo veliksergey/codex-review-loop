@@ -1,0 +1,12 @@
+{
+  "kind": "control",
+  "source": "history",
+  "mode": "audit",
+  "fixture": {
+    "commit": "487c478ea9ccaae47768ef4227d72057ddb40494",
+    "subtree": "plugins/codex-review-loop"
+  },
+  "target": [
+    "skills/codex-loop/fingerprint.sh"
+  ]
+}

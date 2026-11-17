@@ -1,0 +1,13 @@
+{
+  "kind": "defect",
+  "control": "h1-control",
+  "source": "history",
+  "mode": "audit",
+  "target": [
+    "skills/codex-loop"
+  ],
+  "fixture": {
+    "commit": "f631962f99f66b3999defa3dff7f35e04c572cbc",
+    "subtree": "plugins/codex-review-loop"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "Only files that git tracks are compared with the base. An instruction file that the change adds and has not staged is not listed: a new `AGENTS.md`, `CLAUDE.md`, or file under `.codex/`. The prompt then says `none` for it, and the reviewer is not told that the change wrote rules it is judged by.",
+      "trigger": "A new, untracked `AGENTS.md` in the working tree when the script runs.",
+      "place": {
+        "file": "skills/codex-loop/instruction-changes.sh",
+        "lines": [
+          34,
+          38
+        ],
+        "holds": "tracked=\"$(git diff --no-renames --name-status \"$base\""
+      },
+      "tag": "none",
+      "severity": "P1",
+      "why_severity": "A definite gap in a guard, met by the usual way a file is added: untracked.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/instruction-changes.test.sh",
+        "env": "INSTRUCTION_CHANGES",
+        "script": "skills/codex-loop/instruction-changes.sh",
+        "cases": [
+          "modified, staged, untracked, and deleted instruction files are all listed"
+        ]
+      }
+    }
+  ]
+}

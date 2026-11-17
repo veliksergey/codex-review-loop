@@ -1,0 +1,34 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "A link in an untracked folder is left out whenever an ignore pattern matches it, also a negated pattern: one that starts with `!` and takes the path out of the ignored ones. Git does not ignore such a link, so the reviewer could change it. On Windows the link is a junction, which git reads as a folder: for one that leads to an empty folder git lists no file, this function is the only place that records it, and a change to it leaves the fingerprint the same. On other systems git lists a link as a file, and it is recorded whatever this function says.",
+      "trigger": "On Windows: ignore rules `pkg/*/` and `!pkg/keep/`, and an untracked junction `pkg/keep` to an empty folder that is pointed at another folder between the two fingerprints.",
+      "place": {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "lines": [
+          79,
+          79
+        ],
+        "holds": "case \"$pat\" in '') printf '%s\\0' \"$path\" ;; esac"
+      },
+      "tag": "none",
+      "severity": "P2",
+      "why_severity": "A probable gap on one system, which needs a negated ignore rule and a junction under it.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/fingerprint.test.sh",
+        "env": "FINGERPRINT",
+        "script": "skills/codex-loop/fingerprint.sh",
+        "cases": [
+          "link un-ignored by a negated rule, retargeted:"
+        ],
+        "systems": [
+          "windows"
+        ]
+      }
+    }
+  ],
+  "note": "That other systems do not show the defect follows from how git lists a link there. It was not run on one."
+}

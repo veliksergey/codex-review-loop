@@ -1,0 +1,29 @@
+{
+  "expect": "finding",
+  "known_defects": [
+    "The diffs follow the diff settings of the person's git (corrected in 0.2.3).",
+    "Untracked links are read through, and the executable bit of an untracked file is not covered (corrected in 0.2.4).",
+    "`--report-only` still writes a rejected finding to `docs/reviews/decisions.md`, and a review without a task file updates and archives `task.md` (corrected in 0.1.4)."
+  ],
+  "mechanisms": [
+    {
+      "mechanism": "The check that the reviewer changed nothing is four commands in the skill's text, run in the folder the session was started in. The fourth lists untracked files with `git ls-files --others`, which lists only the files below the current folder. Started in a subfolder, the check does not see an edit to an untracked file anywhere else in the repository: new code under review can be changed unnoticed.",
+      "trigger": "Claude Code started in a subfolder of the repository; an untracked file outside that subfolder is edited between the two checks.",
+      "place": {
+        "file": "skills/codex-loop/SKILL.md",
+        "lines": [
+          205,
+          205
+        ],
+        "holds": "ls-files --others --exclude-standard | git hash-object --stdin-paths"
+      },
+      "tag": "none",
+      "severity": "P1",
+      "why_severity": "A definite gap in the check, met whenever a session starts below the root.",
+      "proof": {
+        "kind": "python",
+        "file": "proofs/subfolder.py"
+      }
+    }
+  ]
+}

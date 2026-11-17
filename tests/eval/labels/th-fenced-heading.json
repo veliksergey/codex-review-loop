@@ -1,0 +1,31 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "A line that looks like one of the task template's headings counts as a heading wherever it stands, also inside a fenced block or an HTML comment. Two things follow. Where the handoff quotes `## Out of scope` in a fenced block, the hashed text runs on to that line: the decisions and the handoff above the quote are hashed too, the hash changes when one of them is written, and the loop reports a changed request although neither the request nor the criteria changed. And in a task file without an out-of-scope heading of its own, a quoted one inside the criteria ends the hashed text early: a criterion below it can change, and the hash stays the same. A task file whose headings stand only inside a fenced block or a comment is hashed where it should be refused.",
+      "trigger": "A handoff that quotes the line `## Out of scope` in a fenced block, and then an edit to a decision or to the handoff above that line. Or: criteria that quote that line in a fenced block, in a file with no out-of-scope heading, and then an edit to a criterion below the quote.",
+      "place": {
+        "file": "skills/codex-loop/task-hash.sh",
+        "lines": [
+          24,
+          24
+        ],
+        "holds": "if (/^## Request/) head[NR] = \"request\""
+      },
+      "tag": "none",
+      "severity": "P2",
+      "why_severity": "A probable defect that takes a task file which quotes a heading of the template. It makes the report of a changed request wrong, or lets a changed criterion pass; the review itself is not affected.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/task-hash.test.sh",
+        "env": "TASK_HASH",
+        "script": "skills/codex-loop/task-hash.sh",
+        "cases": [
+          "an out-of-scope heading in a fenced block of the handoff ends nothing",
+          "a block fenced with backticks: a heading inside"
+        ]
+      }
+    }
+  ]
+}

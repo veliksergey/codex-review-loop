@@ -1,0 +1,31 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "The script goes on when one of its steps fails. A git command that fails then leaves an empty or a partial input to the hash, and four hashes are printed with exit code 0. Two runs that fail in the same way print the same four hashes, so the loop reports an unchanged tree without having read it.",
+      "trigger": "`git ls-files` fails, for example on a damaged index; or the script is run outside a repository.",
+      "place": {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "lines": [
+          5,
+          5
+        ],
+        "holds": "set -uo pipefail"
+      },
+      "tag": "none",
+      "severity": "P1",
+      "why_severity": "A definite defect in a safety check: it reports success where it could not look.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/fingerprint.test.sh",
+        "env": "FINGERPRINT",
+        "script": "skills/codex-loop/fingerprint.sh",
+        "cases": [
+          "a failing step:",
+          "outside a git repository:"
+        ]
+      }
+    }
+  ]
+}

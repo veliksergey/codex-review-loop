@@ -1,0 +1,23 @@
+{
+  "kind": "defect",
+  "control": "fp-control",
+  "source": "derived",
+  "mode": "audit",
+  "target": [
+    "skills/codex-loop/fingerprint.sh"
+  ],
+  "fixture": {
+    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "subtree": "plugins/codex-review-loop",
+    "edits": [
+      {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "old": "          h=\"$(git -C \"$root\" hash-object -- \"$f\")\" || exit 1\n          # The executable bit is part of what git commits; hash-object ignores it.\n          mode=644; if [ -x \"$root/$f\" ]; then mode=755; fi\n          record F \"$f\" \"$mode\" \"$h\" || exit 1\n",
+        "new": "          h=\"$(git -C \"$root\" hash-object -- \"$f\")\" || exit 1\n          record F \"$f\" \"$h\" || exit 1\n"
+      }
+    ]
+  },
+  "differs": [
+    "skills/codex-loop/fingerprint.sh"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "expect": "finding",
+  "known_defects": [],
+  "mechanisms": [
+    {
+      "mechanism": "Events are counted from the header of the log on, and Codex writes the prompt into the log right after the header. A line of the prompt that looks like an event is counted: ` succeeded in 1.2s:` as a shell command that ran, `mcp: name started` as a tool call. A task file that quotes a Codex log can so make `shell_usable=yes` for a review in which no sandboxed command ran, the case the loop must stop on.",
+      "trigger": "A prompt whose task file holds the lines `exec` and ` succeeded in 1.2s:`, and a review in which no command ran after the prompt.",
+      "place": {
+        "file": "skills/codex-loop/round-facts.sh",
+        "lines": [
+          39,
+          39
+        ],
+        "holds": "/^exec$/ { started++; next }"
+      },
+      "tag": "none",
+      "severity": "P2",
+      "why_severity": "A probable defect that takes a particular prompt. It defeats a stop that guards the worth of a review, not the working tree.",
+      "proof": {
+        "kind": "test",
+        "file": "tests/round-facts.test.sh",
+        "env": "ROUND_FACTS",
+        "script": "skills/codex-loop/round-facts.sh",
+        "cases": [
+          "event-shaped lines in the echoed prompt are not counted"
+        ]
+      }
+    }
+  ]
+}

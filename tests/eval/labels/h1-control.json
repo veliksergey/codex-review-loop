@@ -1,0 +1,9 @@
+{
+  "expect": "no must-fix finding",
+  "known_defects": [
+    "The diffs follow the diff settings of the person's git (corrected in 0.2.3).",
+    "Untracked links are read through, and the executable bit of an untracked file is not covered (corrected in 0.2.4).",
+    "`--report-only` still writes a rejected finding to `docs/reviews/decisions.md`, and a review without a task file updates and archives `task.md` (corrected in 0.1.4)."
+  ],
+  "note": "The commit that corrected it: the check moved into a script that works from the root."
+}
