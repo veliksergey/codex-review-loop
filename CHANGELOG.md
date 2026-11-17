@@ -221,6 +221,17 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-16: the README's privacy section said that only the Codex CLI sends data
+  from your computer. It now also names what Claude Code itself sends to the model
+  provider you run it with, the review included. The README in the plugin folder
+  still has the old sentence and follows with the next release.
+- 2026-11-16: tests and checks of this repository, with no change to the plugin. A
+  workflow, `.github/workflows/tests.yml`, runs the tests on Linux, macOS, and Windows
+  for a push to `main` and for a pull request. The new `tests/run-all.sh` runs every
+  test file and prints the cases that passed, failed, and were skipped in each. The new
+  `tests/published-files.sh` looks for a home-folder path or an e-mail address in the
+  files git would publish. `tests/fingerprint.test.sh` now reports a case it cannot run
+  as skipped, not as passed.
 - 2026-10-05: `docs/manual-install/` explains how to review the plugin and install
   it without trusting GitHub: from your own clone, by copying the plugin folder, or
   by hand. Linked from the README.

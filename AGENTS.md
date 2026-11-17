@@ -15,7 +15,8 @@ Code implements; the Codex CLI reviews read-only. Users install it with
 | `plugins/codex-review-loop/README.md` | The plugin-folder README. Anthropic's directory shows it as the listing; it must stay at least 40 words outside code blocks and describe what the plugin runs, sends, and writes. |
 | `plugins/codex-review-loop/skills/codex-loop/` | The review loop skill, the review prompt sent to Codex, the task file template, the triage file template, the run summary template, and seven scripts: `fingerprint.sh`, the before/after working-tree check; `instruction-changes.sh`, which lists the instruction files a change edits; `log-dir.sh`, which prints the log folder and stops when another repository with the same folder name already uses it; `task-hash.sh`, which hashes the request and the acceptance criteria of the task file; `mcp-off-flags.sh`, which prints the flag that turns the configured MCP servers off; `tool-flags.sh`, which builds the flags that limit the reviewer's tools and checks them against Codex before a review starts; and `round-facts.sh`, which reads what the reviewer ran from Codex's log and identifies the round by its prompt and commit. |
 | `plugins/codex-review-loop/skills/setup/` | The setup skill and the blocks it installs in users' global files. |
-| `tests/` | Shell tests, and repository tooling in Python: `loop_stats.py`, which prints figures about a user's own review runs, with its tests. Not shipped with the plugin. |
+| `tests/` | Shell tests; `run-all.sh`, which runs them all and prints one table of the cases that passed, failed, and were skipped; `published-files.sh`, which looks for a home-folder path or an e-mail address in the files git would publish; and repository tooling in Python: `loop_stats.py`, which prints figures about a user's own review runs, with its tests. Not shipped with the plugin. |
+| `.github/workflows/tests.yml` | Runs `tests/run-all.sh` on Linux, macOS, and Windows for a push to `main` and for a pull request. It needs no account and installs nothing. |
 | `docs/` | User documentation. `docs/reviews/decisions.md` records rejected review findings. |
 
 ## Commands
@@ -27,7 +28,7 @@ There is no build or lint. These are the checks:
 | Marketplace manifest | `claude plugin validate --strict .` | Exit 0 |
 | Plugin manifest and skills | `claude plugin validate --strict plugins/codex-review-loop` | Exit 0 |
 | Plugin loads with both skills | `claude --plugin-dir ./plugins/codex-review-loop plugin details codex-review-loop` | Lists `Skills (2)  codex-loop, setup` |
-| Fingerprint script | `bash tests/fingerprint.test.sh` | Exit 0, prints `all passed` |
+| Fingerprint script | `bash tests/fingerprint.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | Instruction files script | `bash tests/instruction-changes.test.sh` | Exit 0, prints `all passed` |
 | Log folder script | `bash tests/log-dir.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | Task hash script | `bash tests/task-hash.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
@@ -35,6 +36,15 @@ There is no build or lint. These are the checks:
 | Round facts script | `bash tests/round-facts.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | MCP flags script | `bash tests/mcp-off-flags.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | Tool flags script | `bash tests/tool-flags.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
+| Published files | `bash tests/published-files.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run. Its last case runs `tests/published-files.sh` on this repository |
+| Test runner | `bash tests/run-all.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
+
+`bash tests/run-all.sh` runs every row from the fingerprint script down in one go. It
+prints one table of the cases that passed, failed, and were skipped in each file, names
+each failed and each skipped case, and exits 0 when nothing failed. The workflow runs
+that command on Linux, macOS, and Windows. The first three rows need Claude Code and are
+not part of it. A skipped case is not a passed one: a case that one system skips counts
+as checked only where another system runs it.
 
 ## Release rule
 
@@ -56,6 +66,12 @@ changes under "Documentation only".
   numbers derived from anyone's review logs or Codex session records, and no details
   of a real computer such as its configuration or installed tools. Evidence of that
   kind may guide a change, but it stays outside the repository.
+  `tests/published-files.sh` looks for two of these in the text of every file git
+  would publish: a path into a home folder with a name in it, and an e-mail address
+  outside the hosts reserved for examples. It cannot recognise the others. It reads
+  neither file names, nor where a link points, nor the files of a submodule, and it
+  passes over the user and the host of an SSH remote and over a path inside a URL that
+  is not a file URL. It does not replace reading the change.
 - **Python stays in `tests/`.** Repository tooling may use Python 3 with the standard
   library only. Nothing under `plugins/` may need Python, and a system without it must
   still pass every check, with the Python tests reported as skipped.

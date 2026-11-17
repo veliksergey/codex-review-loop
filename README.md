@@ -200,13 +200,21 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
 ## Privacy
 
 The plugin's authors collect nothing: there is no service, no telemetry, and
-nothing sent to the authors. The only data that leaves your machine is what the
-Codex CLI sends to OpenAI under your own ChatGPT account: the task file, whatever
-the reviewer reads while it reviews, and its web searches. That is governed by
-OpenAI's privacy policy at https://openai.com/policies/privacy-policy and by your
-plan. Review logs stay in
-`~/.claude/codex-reviews/` until you delete them. Report product or security concerns
-through the repository's issues.
+nothing sent to the authors. Two tools send data to their own providers while the
+loop runs:
+
+- The Codex CLI sends OpenAI the task file, whatever the reviewer reads while it
+  reviews, and its web searches, under your own ChatGPT account. That is governed by
+  OpenAI's privacy policy at https://openai.com/policies/privacy-policy and by your
+  plan.
+- Claude Code sends the model provider you run it with your prompts and the model's
+  outputs, as it does in every session; see https://code.claude.com/docs/en/data-usage
+  (read on 2026-11-16). The code Claude reads for the task is part of that
+  conversation, and so is Codex's review, which the loop shows to Claude so that it
+  can check each finding.
+
+Review logs stay in `~/.claude/codex-reviews/` until you delete them. Report product
+or security concerns through the repository's issues.
 
 ## Repository layout
 
@@ -216,7 +224,8 @@ through the repository's issues.
 | `plugins/codex-review-loop/skills/codex-loop/` | The review loop: `SKILL.md`, the review prompt sent to Codex, the templates for the task file, the triage note, and the run summary, and seven small shell scripts it runs. |
 | `plugins/codex-review-loop/skills/setup/` | The setup command and the rule templates it installs. |
 | `plugins/codex-review-loop/README.md` | Short README inside the plugin folder, shown by Anthropic's plugin directory. |
-| `tests/` | Shell tests for this repository, and `loop_stats.py`, a Python script that prints figures about your own review runs from the log folder. Not part of the installed plugin. |
+| `tests/` | Shell tests for this repository, with `run-all.sh` to run them all; `published-files.sh`, which looks for a home-folder path or an e-mail address in the files git would publish; and `loop_stats.py`, a Python script that prints figures about your own review runs from the log folder. Not part of the installed plugin. |
+| `.github/workflows/tests.yml` | Runs the tests on Linux, macOS, and Windows for a push to `main` and for a pull request. |
 | `docs/GUIDE.md` | Full setup and usage guide. |
 | `docs/CHEATSHEET.md` | One-page reference. |
 | [`docs/manual-install/`](docs/manual-install/README.md) | Installing from a copy you have reviewed, or by hand. |

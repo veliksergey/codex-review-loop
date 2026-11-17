@@ -7,10 +7,12 @@ set -uo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 fp="${FINGERPRINT:-$here/../plugins/codex-review-loop/skills/codex-loop/fingerprint.sh}"
 fails=0
+skips=0
 
 abort() { echo "setup failed: $1" >&2; exit 2; }
 pass() { echo "ok   - $1"; }
 fail() { echo "FAIL - $1"; fails=$((fails + 1)); }
+skip() { echo "skip - $1"; skips=$((skips + 1)); }
 line() { printf '%s\n' "$1" | sed -n "${2}p"; }
 g() { git -c user.name=test -c user.email=test@example.com "$@"; }
 # make_symlink <target> <link>: a relative symbolic link. On Windows this needs
@@ -140,7 +142,7 @@ if [ -x "$repo/run.sh" ]; then
     fail "making an untracked file executable: untracked hash unchanged"
   fi
 else
-  pass "making an untracked file executable: skipped, this system has no executable bit to change"
+  skip "making an untracked file executable: this system has no executable bit to change"
 fi
 rm -f "$repo/run.sh" || abort "remove script"
 
@@ -173,7 +175,7 @@ if [ -L "$repo/lnk" ]; then
   fi
   rm -f "$repo/lnk" || abort "remove dangling link"
 else
-  pass "dangling untracked link: skipped, this system cannot create one"
+  skip "dangling untracked link: this system cannot create one"
 fi
 
 # A link to an empty folder has no untracked file behind it, at the top level or
@@ -212,7 +214,7 @@ if (cd "$repo" && make_symlink "b c d" a && make_symlink "c d" "a b" && make_sym
     fail "links with spaces in names and targets: a retarget collided with another record"
   fi
 else
-  pass "links with spaces in names and targets: skipped, this system cannot create relative symlinks"
+  skip "links with spaces in names and targets: this system cannot create relative symlinks"
 fi
 (cd "$repo" && rm -f a "a b" "a b c") || abort "remove spaced links"
 
@@ -341,9 +343,11 @@ else
   fail "no temp folder: exit $rc, the current repository was changed"
 fi
 
-if [ $fails -eq 0 ]; then
-  echo "all passed"
-else
+if [ $fails -ne 0 ]; then
   echo "$fails failed"
   exit 1
+elif [ $skips -ne 0 ]; then
+  echo "all passed, $skips skipped"
+else
+  echo "all passed"
 fi

@@ -1,0 +1,37 @@
+# Runs the tests on the three systems the scripts must work on. It needs no account and
+# no secret, and it installs nothing: every tool it uses is already on the runner.
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      # One system's failure does not stop the others: each has its own skipped cases.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        # On Windows this is the bash of Git for Windows.
+        shell: bash
+    steps:
+      # actions/checkout 7.0.1, pinned to its commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Tools on this system
+        run: |
+          echo "bash $BASH_VERSION"
+          git --version
+      - name: Tests
+        run: bash tests/run-all.sh
