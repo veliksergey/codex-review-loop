@@ -1,3 +1,104 @@
 {
-  "agreed": {}
+  "agreed": {
+    "fp-control": {
+      "hash": "c628610dc1eb797b8c3d36739b7a19f4b0ec00ef1cbe9b99ece832f36e6cf090",
+      "date": "2026-11-17"
+    },
+    "fp-diff-settings": {
+      "hash": "fa4b9a848fbf396dfa4491ad9cf6bcea5ac20a08ff5dbdd230c6bace934fa163",
+      "date": "2026-11-17"
+    },
+    "fp-executable-bit": {
+      "hash": "972f35a3d26cc6da123b13b69baaa073a78837853cfb7f25d1375fed0171e1b1",
+      "date": "2026-11-17"
+    },
+    "fp-failing-step": {
+      "hash": "eb8c7f58fc9c3e3444ada767a69f1513ee503589cde338b4d991d642d0d1e1bf",
+      "date": "2026-11-17"
+    },
+    "fp-find-action": {
+      "hash": "f8ed9e25f633540849282b62066889d5f9490b20197db6e10405a81e9cd74e47",
+      "date": "2026-11-17"
+    },
+    "fp-names-with-spaces": {
+      "hash": "3c0ae077730f6fa18b86998e7ac997fdc4de1fef5dce8427ccf89bb14b4e9fb8",
+      "date": "2026-11-17"
+    },
+    "fp-negated-ignore": {
+      "hash": "58db736d25cb29b973a67934396d77fc090d8b483ec9448f92d1ed016998aadd",
+      "date": "2026-11-17"
+    },
+    "h1-control": {
+      "hash": "08fce02e41871eef25d74b04822fca9de307c1ac69a28bda54ebe1c24b664f93",
+      "date": "2026-11-17"
+    },
+    "h1-subfolder": {
+      "hash": "43413579b916c164b558b8000f22f49dbdbff16c5b455b87cb3757c38df68485",
+      "date": "2026-11-17"
+    },
+    "h2-control": {
+      "hash": "a5a885ec0c125ae59b11f5744dac67730a9a78500aa9bcea0749ad9e1de00324",
+      "date": "2026-11-17"
+    },
+    "h2-links-and-diffs": {
+      "hash": "a264236840b7033340b331aed3587554fd6389ffe9c3d431cc775606f3a69c32",
+      "date": "2026-11-17"
+    },
+    "ic-control": {
+      "hash": "fe2937a5a623a6455beef070b05662cb0f07e530d0a77dd9eb5711ecd590dc0e",
+      "date": "2026-11-17"
+    },
+    "ic-untracked-file": {
+      "hash": "f10c5223c81ab9651c39ae329b7b1436296ab88835a04da5039fa763d21bbdaf",
+      "date": "2026-11-17"
+    },
+    "rf-control": {
+      "hash": "b6a894d9f1c3d757b4ec15c3bb03e258283692505a98857e44547cd5157460ea",
+      "date": "2026-11-17"
+    },
+    "rf-echoed-prompt": {
+      "hash": "09fb23150aacf998d8dec3f54151feeff951e218f96223bba985f246f33d62cf",
+      "date": "2026-11-17"
+    },
+    "th-control": {
+      "hash": "28953333bdd0f0823b043605ab9effe9a59434070ce93aac483bd5aad4f75547",
+      "date": "2026-11-17"
+    },
+    "th-fenced-heading": {
+      "hash": "aa313af8932409cff50a6b2529987f1841f45b243949ab7c8964841f3ee72039",
+      "date": "2026-11-17"
+    },
+    "w-beyond": {
+      "hash": "5d7fb53d5189acc512b24ca31e27357cde154dadb2a3fe7889a742d7c085c498",
+      "date": "2026-11-17"
+    },
+    "w-beyond-control": {
+      "hash": "4f11a883200814553f6a9f4e45205da6f00420b363f07988058b6d159bc6f211",
+      "date": "2026-11-17"
+    },
+    "w-criterion": {
+      "hash": "1e6091ea39610a462e98a4d412569f696a979db9d6ee47d184129dfd475f13d0",
+      "date": "2026-11-17"
+    },
+    "w-criterion-control": {
+      "hash": "5b6bc79f75a1041208c19c36c3661f1ffa62fe2c3c40fee7505088dc50b65a8c",
+      "date": "2026-11-17"
+    },
+    "w-handoff": {
+      "hash": "c4f0047d42493d7c27aba8156c872b0f5d8b97acf42f97c35a86b727f4de692d",
+      "date": "2026-11-17"
+    },
+    "w-handoff-control": {
+      "hash": "848bdab2743c71faf654217994c679b1a54d677feb1fd03907f21fe88d36b331",
+      "date": "2026-11-17"
+    },
+    "w-ownership": {
+      "hash": "4c09ecfccfcc9827a057dd85d2151bf9a805f40acb6e03b6d2a177f719804498",
+      "date": "2026-11-17"
+    },
+    "w-ownership-control": {
+      "hash": "ff11d1be0de8b9397fb3d6c5376c5f1f5b08b335bec85442bb654d3011709969",
+      "date": "2026-11-17"
+    }
+  }
 }

@@ -221,6 +221,18 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-17: a runner for reviews of the evaluation corpus, with no change to the
+  plugin. `tests/eval_review.py run <case>` runs one Codex review on a case as the review
+  loop runs one: the plugin's prompt, the flags of `tool-flags.sh`, the read-only
+  sandbox, and the fingerprint before and after. It runs without web search, because
+  this repository is public and Codex's log does not say what a search fetched. It
+  refuses a case whose label nobody agreed with, marks a review that cannot be trusted
+  as not usable, and keeps what a review leaves outside the repository. `judge` lists
+  the findings of a review beside the label for a person to state what each is, and
+  `report` prints figures from the reviews that are judged, each with the size of its
+  sample. Each call of `run` spends one review of your Codex allowance; the tests use a
+  stand-in for Codex and spend none. The 25 labels of the corpus are recorded as agreed
+  with.
 - 2026-11-17: an evaluation corpus in `tests/eval/`, with no change to the plugin. It
   holds 25 cases that a review can be run on: a defect case and the same case without
   the defect, from this repository's own history, from one past fix put back into a

@@ -15,8 +15,8 @@ Code implements; the Codex CLI reviews read-only. Users install it with
 | `plugins/codex-review-loop/README.md` | The plugin-folder README. Anthropic's directory shows it as the listing; it must stay at least 40 words outside code blocks and describe what the plugin runs, sends, and writes. |
 | `plugins/codex-review-loop/skills/codex-loop/` | The review loop skill, the review prompt sent to Codex, the task file template, the triage file template, the run summary template, and seven scripts: `fingerprint.sh`, the before/after working-tree check; `instruction-changes.sh`, which lists the instruction files a change edits; `log-dir.sh`, which prints the log folder and stops when another repository with the same folder name already uses it; `task-hash.sh`, which hashes the request and the acceptance criteria of the task file; `mcp-off-flags.sh`, which prints the flag that turns the configured MCP servers off; `tool-flags.sh`, which builds the flags that limit the reviewer's tools and checks them against Codex before a review starts; and `round-facts.sh`, which reads what the reviewer ran from Codex's log and identifies the round by its prompt and commit. |
 | `plugins/codex-review-loop/skills/setup/` | The setup skill and the blocks it installs in users' global files. |
-| `tests/` | Shell tests; `run-all.sh`, which runs them all and prints one table of the cases that passed, failed, and were skipped; `published-files.sh`, which looks for a home-folder path or an e-mail address in the files git would publish; and repository tooling in Python: `loop_stats.py`, which prints figures about a user's own review runs, and `eval_corpus.py`, which builds and checks the evaluation corpus, each with its tests. Not shipped with the plugin. |
-| `tests/eval/` | The evaluation corpus: cases that a review can be run on, each a defect case or its control, with a label for each that says what is wrong. `tests/eval/README.md` describes it. Not shipped with the plugin. |
+| `tests/` | Shell tests; `run-all.sh`, which runs them all and prints one table of the cases that passed, failed, and were skipped; `published-files.sh`, which looks for a home-folder path or an e-mail address in the files git would publish; and repository tooling in Python: `loop_stats.py`, which prints figures about a user's own review runs, `eval_corpus.py`, which builds and checks the evaluation corpus, and `eval_review.py`, which runs a Codex review on a case of the corpus as the loop runs one and scores reviews against the labels, each with its tests. Not shipped with the plugin. |
+| `tests/eval/` | The evaluation corpus: cases that a review can be run on, each a defect case or its control, with a label for each that says what is wrong. `tests/eval/README.md` describes it, and how a review of a case is run, judged, and reported. Not shipped with the plugin. |
 | `.github/workflows/tests.yml` | Runs `tests/run-all.sh` on Linux, macOS, and Windows for a push to `main` and for a pull request. It needs no account and installs nothing. It fetches the whole history, which some cases of the corpus are built from, and sets `EVAL_CORPUS_SLOW=1`, so that every proof of the corpus runs on each system that can run it. |
 | `docs/` | User documentation. `docs/reviews/decisions.md` records rejected review findings. |
 
@@ -40,6 +40,7 @@ There is no build or lint. These are the checks:
 | Published files | `bash tests/published-files.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run. Its last case runs `tests/published-files.sh` on this repository |
 | Test runner | `bash tests/run-all.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | Evaluation corpus | `bash tests/eval-corpus.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run. On Windows the proofs that run a shell test take minutes and are one skip, unless `EVAL_CORPUS_SLOW=1` is set, as the workflow sets it; `python tests/eval_corpus.py check --slow` runs them too. Without Python 3.8 or newer the whole test is one skip |
+| Review runner | `bash tests/eval-review.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run. A stand-in takes the place of Codex, so it starts no review. Without Python 3.8 or newer, or without a bash that can run the plugin's scripts, the whole test is one skip |
 
 `bash tests/run-all.sh` runs every row from the fingerprint script down in one go. It
 prints one table of the cases that passed, failed, and were skipped in each file, names
@@ -81,7 +82,9 @@ changes under "Documentation only".
   person's reviews and writes no file. Its output, and anything else read from a real
   log folder, is never committed. Tests use logs they build themselves. The same holds
   for a review of a case of the evaluation corpus: what the reviewer said, and any
-  score made from it, stays outside the repository.
+  score made from it, stays outside the repository. `tests/eval_review.py` keeps reviews
+  in the loop's log folder and refuses a results folder inside this repository; what
+  its `report` prints is private like the figures above.
 - **Labels stay outside fixtures.** A label of the evaluation corpus says what is wrong
   with a case, and a reviewer reads everything its fixture holds. So a fixture holds no
   label, no name of a case, and no other case; `tests/eval_corpus.py build` writes it
@@ -89,6 +92,10 @@ changes under "Documentation only".
   that. No review of a case runs before a person agreed with its label, and a case or
   a label that changes counts as not agreed. Only that person records the agreement:
   an agent does not run `agree` unless the user says so for the cases named.
+  `tests/eval_review.py run` refuses a case that is not agreed with. Each call of it
+  spends one review of the user's Codex allowance and sends the fixture to OpenAI, so
+  an agent runs it only for the cases the user asked a review of; its tests use a
+  stand-in for Codex.
 - **Portable shell commands.** Commands in skills must work in bash on macOS, on
   Linux, and in Git Bash on Windows. Prefer git built-ins over platform tools: for
   example `git hash-object --stdin`, not `sha1sum`. No GNU-only flags.

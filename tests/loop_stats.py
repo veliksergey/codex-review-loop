@@ -66,8 +66,9 @@ def tag_of(text):
 
 
 def bullets(lines, fenced):
-    """The findings among these lines, the lines above the first, and whether a fenced
-    block was left open. With fenced, a bullet inside a fenced block is an example."""
+    """The lines that open a finding among these lines, the lines above the first, and
+    whether a fenced block was left open. With fenced, a bullet inside a fenced block is
+    an example."""
     found, opening, fence = [], [], ""
     for line in lines:
         mark = FENCE.match(line) if fenced else None
@@ -79,17 +80,15 @@ def bullets(lines, fenced):
         # A block that opens after spaces is part of a finding's body, which is indented.
         elif mark and mark.start(1) == 0 and not (mark.group(1)[0] == "`" and "`" in mark.group(2)):
             fence = mark.group(1)
-        else:
-            item = FINDING.match(line)
-            if item:
-                found.append((item.group(1), item.group(2)))
+        elif FINDING.match(line):
+            found.append(line)
         if not found:
             opening.append(line)
     return found, opening, bool(fence)
 
 
-def findings_of(review):
-    """The findings a review lists, as (label, tag) pairs, and the text above them.
+def finding_lines(review):
+    """The line that opens each finding of a review, and the text above them.
 
     Codex lists them below the line "Full review comments:", one bullet at the start of
     a line each; the lines of a finding's body are indented. What stands above that line
@@ -105,6 +104,12 @@ def findings_of(review):
         # A block that never closes is no block: it would hide every finding below it.
         found, opening, _ = bullets(lines, False)
     return found, "\n".join(opening if summary is None else summary)
+
+
+def findings_of(review):
+    """The findings a review lists, as (label, tag) pairs, and the text above them."""
+    lines, summary = finding_lines(review)
+    return [FINDING.match(line).group(1, 2) for line in lines], summary
 
 
 def facts_of_log(text):

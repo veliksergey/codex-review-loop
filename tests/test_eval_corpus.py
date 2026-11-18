@@ -78,6 +78,44 @@ def mechanism(file, lines, holds, proof, **more):
     return item
 
 
+def put(corpus, name, case=None, label=None):
+    if case is not None:
+        write(os.path.join(corpus, "cases", name, "case.json"), json.dumps(case))
+    if label is not None:
+        write(os.path.join(corpus, "labels", name + ".json"), json.dumps(label))
+
+
+def small_corpus(corpus, commit):
+    """Writes a corpus of two pairs: one from that commit, one written."""
+    write(os.path.join(corpus, "shared", "app", "app.py"), "def answer():\n    return 1\n")
+    write(os.path.join(corpus, "proofs", "says_good.py"), PROOF.format(file="tool.sh", good="echo good"))
+    write(os.path.join(corpus, "proofs", "returns_one.py"), PROOF.format(file="app.py", good="return 1"))
+    from_commit = {"commit": commit, "subtree": "plugin"}
+    put(corpus, "d-control", {"kind": "control", "source": "derived", "mode": "audit", "target": ["tool.sh"],
+                              "fixture": dict(from_commit)},
+        {"expect": "no must-fix finding", "known_defects": ["An old one that is known."]})
+    put(corpus, "d-broken", {"kind": "defect", "control": "d-control", "source": "derived", "mode": "audit",
+                             "target": ["tool.sh"], "differs": ["tool.sh"],
+                             "fixture": dict(from_commit, edits=[{"file": "tool.sh", "old": "good", "new": "bad"}])},
+        {"expect": "finding", "mechanisms": [mechanism(
+            "tool.sh", [2, 2], "echo bad", {"kind": "python", "file": "proofs/says_good.py"})]})
+    written = {"base": "shared/app", "task": "cases/w-control/task.md"}
+    write(os.path.join(corpus, "cases", "w-control", "task.md"), TASK)
+    write(os.path.join(corpus, "cases", "w-broken", "task.md"), TASK + "\nAll done.\n")
+    put(corpus, "w-control", {"kind": "control", "source": "written", "mode": "uncommitted",
+                              "fixture": dict(written, change_edits=[
+                                  {"file": "app.py", "old": "def answer", "new": "# The answer.\ndef answer"}])},
+        {"expect": "no must-fix finding"})
+    put(corpus, "w-broken", {"kind": "defect", "control": "w-control", "source": "written", "mode": "uncommitted",
+                             "differs": ["app.py", "task.md"],
+                             "fixture": {"base": "shared/app", "task": "cases/w-broken/task.md", "change_edits": [
+                                 {"file": "app.py", "old": "def answer", "new": "# The answer.\ndef answer"},
+                                 {"file": "app.py", "old": "return 1", "new": "return 2"}]}},
+        {"expect": "finding", "mechanisms": [mechanism(
+            "app.py", [3, 3], "return 2", {"kind": "python", "file": "proofs/returns_one.py"},
+            tag="criterion 1")]})
+
+
 class SmallCorpusTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -92,40 +130,10 @@ class SmallCorpusTest(unittest.TestCase):
         self.addCleanup(holder.cleanup)
         self.folder = holder.name
         self.corpus = os.path.join(self.folder, "corpus")
-        # A corpus of two pairs: one from that commit, one written.
-        write(os.path.join(self.corpus, "shared", "app", "app.py"), "def answer():\n    return 1\n")
-        write(os.path.join(self.corpus, "proofs", "says_good.py"), PROOF.format(file="tool.sh", good="echo good"))
-        write(os.path.join(self.corpus, "proofs", "returns_one.py"), PROOF.format(file="app.py", good="return 1"))
-        from_commit = {"commit": self.commit, "subtree": "plugin"}
-        self.put("d-control", {"kind": "control", "source": "derived", "mode": "audit", "target": ["tool.sh"],
-                               "fixture": dict(from_commit)},
-                 {"expect": "no must-fix finding", "known_defects": ["An old one that is known."]})
-        self.put("d-broken", {"kind": "defect", "control": "d-control", "source": "derived", "mode": "audit",
-                              "target": ["tool.sh"], "differs": ["tool.sh"],
-                              "fixture": dict(from_commit, edits=[{"file": "tool.sh", "old": "good", "new": "bad"}])},
-                 {"expect": "finding", "mechanisms": [mechanism(
-                     "tool.sh", [2, 2], "echo bad", {"kind": "python", "file": "proofs/says_good.py"})]})
-        written = {"base": "shared/app", "task": "cases/w-control/task.md"}
-        write(os.path.join(self.corpus, "cases", "w-control", "task.md"), TASK)
-        write(os.path.join(self.corpus, "cases", "w-broken", "task.md"), TASK + "\nAll done.\n")
-        self.put("w-control", {"kind": "control", "source": "written", "mode": "uncommitted",
-                               "fixture": dict(written, change_edits=[
-                                   {"file": "app.py", "old": "def answer", "new": "# The answer.\ndef answer"}])},
-                 {"expect": "no must-fix finding"})
-        self.put("w-broken", {"kind": "defect", "control": "w-control", "source": "written", "mode": "uncommitted",
-                              "differs": ["app.py", "task.md"],
-                              "fixture": {"base": "shared/app", "task": "cases/w-broken/task.md", "change_edits": [
-                                  {"file": "app.py", "old": "def answer", "new": "# The answer.\ndef answer"},
-                                  {"file": "app.py", "old": "return 1", "new": "return 2"}]}},
-                 {"expect": "finding", "mechanisms": [mechanism(
-                     "app.py", [3, 3], "return 2", {"kind": "python", "file": "proofs/returns_one.py"},
-                     tag="criterion 1")]})
+        small_corpus(self.corpus, self.commit)
 
     def put(self, name, case=None, label=None):
-        if case is not None:
-            write(os.path.join(self.corpus, "cases", name, "case.json"), json.dumps(case))
-        if label is not None:
-            write(os.path.join(self.corpus, "labels", name + ".json"), json.dumps(label))
+        put(self.corpus, name, case, label)
 
     def change(self, name, what, edit):
         """Rewrites the definition (case) or the label of a case with a function."""

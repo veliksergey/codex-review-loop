@@ -387,17 +387,26 @@ def checkout(path):
     return path
 
 
+def protected(corpus, repository):
+    """The folders that nothing made from a case is written into: the whole checkout
+    that holds the corpus, and the one the history is read from. The repository named on
+    the command line may be a folder inside one of them, or another clone."""
+    return (repository, corpus, checkout(repository), checkout(corpus))
+
+
+def keep_out(folder, corpus, repository, why):
+    """Stops when a folder lies in one of the protected folders."""
+    for place in protected(corpus, repository):
+        if within(folder, place):
+            raise Problem(f"{folder}: {why}")
+
+
 def build(corpus, repository, cases, name, folder):
     """Writes the fixture of a case: <folder>/repo, and <folder>/task.md where the case
     is reviewed against a request. Returns the two paths; the second may be None."""
     if name not in cases:
         raise Problem(f"{name}: no such case")
-    # Outside the whole checkout that holds the corpus, and the one the history is read
-    # from: the repository named on the command line may be a folder inside one of them,
-    # or another clone.
-    for place in (repository, corpus, checkout(repository), checkout(corpus)):
-        if within(folder, place):
-            raise Problem(f"{folder}: a fixture is built outside this repository, where no label can be read")
+    keep_out(folder, corpus, repository, "a fixture is built outside this repository, where no label can be read")
     if os.path.exists(folder) and (not os.path.isdir(folder) or os.listdir(folder)):
         raise Problem(f"{folder}: not an empty folder")
     work, task = os.path.join(folder, "repo"), os.path.join(folder, "task.md")
