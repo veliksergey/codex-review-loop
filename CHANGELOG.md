@@ -254,6 +254,10 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-18: the workflow stops a job after 30 minutes, where it was 20. With the derived
+  cases of the evaluation corpus made from 0.6.1, their proofs take longer on Windows,
+  and the job there was stopped at the limit just as it printed that every test had
+  passed. Linux and macOS take a few minutes.
 - 2026-11-18: the evaluation corpus is brought up to 0.6.1, with no change to the plugin.
   The thirteen cases that are derived from a release are now made from the plugin folder
   of 0.6.1, so that their controls no longer hold the defects that release corrected. In

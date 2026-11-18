@@ -14,7 +14,9 @@ jobs:
   tests:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    # Stops a run that hangs. The Windows job is the longest by far: the proofs of the
+    # evaluation corpus by shell tests take minutes there.
+    timeout-minutes: 30
     strategy:
       # One system's failure does not stop the others: each has its own skipped cases.
       fail-fast: false
