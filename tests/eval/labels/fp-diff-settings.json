@@ -8,8 +8,8 @@
       "place": {
         "file": "skills/codex-loop/fingerprint.sh",
         "lines": [
-          107,
-          108
+          182,
+          183
         ],
         "holds": "unstaged=\"$(git -C \"$root\" diff --binary --full-index"
       },
@@ -23,6 +23,7 @@
         "script": "skills/codex-loop/fingerprint.sh",
         "cases": [
           "external diff driver: a second unstaged edit",
+          "external diff driver: a second staged edit",
           "textconv driver: an edit"
         ]
       }

@@ -8,8 +8,8 @@
       "place": {
         "file": "skills/codex-loop/fingerprint.sh",
         "lines": [
-          79,
-          79
+          115,
+          115
         ],
         "holds": "case \"$pat\" in '') printf '%s\\0' \"$path\" ;; esac"
       },

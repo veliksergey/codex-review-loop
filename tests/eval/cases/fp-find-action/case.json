@@ -7,13 +7,23 @@
     "skills/codex-loop/fingerprint.sh"
   ],
   "fixture": {
-    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "commit": "e41ef1ce93ee5670f2328a438ec9e27d8723cfd8",
     "subtree": "plugins/codex-review-loop",
     "edits": [
       {
         "file": "skills/codex-loop/fingerprint.sh",
-        "old": "          # \"./\" keeps a folder named like a find action, such as -delete, a folder name.\n          (cd \"$root\" && find \"./$e\" -type l -print0) \\\n            | while IFS= read -r -d '' l; do printf '%s\\0' \"${l#./}\"; done \\\n            | not_ignored \\\n",
-        "new": "          (cd \"$root\" && find \"$e\" -type l -print0) \\\n            | not_ignored \\\n"
+        "old": "# \"./\" keeps a folder named like a find action, such as -delete, a folder name, and\n# --literal-pathspecs keeps one named like a pathspec, such as :new or a*, a folder name.\n",
+        "new": "# --literal-pathspecs keeps a folder named like a pathspec, such as :new or a*, a\n# folder name.\n"
+      },
+      {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "old": "          skip+=(-o -path \"./$i\")\n",
+        "new": "          skip+=(-o -path \"$i\")\n"
+      },
+      {
+        "file": "skills/codex-loop/fingerprint.sh",
+        "old": "          find \"./$1\" -type l -print0\n        else\n          # Without its first -o the list reads: -path a -o -path b.\n          find \"./$1\" \\( \"${skip[@]:1}\" \\) -prune -o -type l -print0\n        fi\n      } \\\n    | while IFS= read -r -d '' l; do printf '%s\\0' \"${l#./}\"; done\n}\n",
+        "new": "          find \"$1\" -type l -print0\n        else\n          # Without its first -o the list reads: -path a -o -path b.\n          find \"$1\" \\( \"${skip[@]:1}\" \\) -prune -o -type l -print0\n        fi\n      }\n}\n"
       }
     ]
   },

@@ -7,7 +7,7 @@
     "skills/codex-loop/fingerprint.sh"
   ],
   "fixture": {
-    "commit": "87967dff99cfc0a84a067b764f3d603b3523c605",
+    "commit": "e41ef1ce93ee5670f2328a438ec9e27d8723cfd8",
     "subtree": "plugins/codex-review-loop",
     "edits": [
       {

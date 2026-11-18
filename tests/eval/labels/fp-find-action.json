@@ -8,10 +8,10 @@
       "place": {
         "file": "skills/codex-loop/fingerprint.sh",
         "lines": [
-          96,
-          96
+          145,
+          148
         ],
-        "holds": "(cd \"$root\" && find \"$e\" -type l -print0)"
+        "holds": "find \"$1\" -type l -print0"
       },
       "tag": "none",
       "severity": "P0",

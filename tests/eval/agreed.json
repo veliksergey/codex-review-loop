@@ -1,72 +1,72 @@
 {
   "agreed": {
     "fp-control": {
-      "hash": "c628610dc1eb797b8c3d36739b7a19f4b0ec00ef1cbe9b99ece832f36e6cf090",
-      "date": "2026-11-17"
+      "hash": "c3d58154b4307c7eb4ccfebafade93e2abad4690681db0d4daf32fc6fa4d9c32",
+      "date": "2026-11-18"
     },
     "fp-diff-settings": {
-      "hash": "fa4b9a848fbf396dfa4491ad9cf6bcea5ac20a08ff5dbdd230c6bace934fa163",
-      "date": "2026-11-17"
+      "hash": "80de941088553f9ca26a6e1bc04a37c4156201811e5ec2d31bd8ce8822662843",
+      "date": "2026-11-18"
     },
     "fp-executable-bit": {
-      "hash": "972f35a3d26cc6da123b13b69baaa073a78837853cfb7f25d1375fed0171e1b1",
-      "date": "2026-11-17"
+      "hash": "6fc166c233cae44de37975df2918dd36b2e568cdbeec2dc36482f6cc086bbacb",
+      "date": "2026-11-18"
     },
     "fp-failing-step": {
-      "hash": "eb8c7f58fc9c3e3444ada767a69f1513ee503589cde338b4d991d642d0d1e1bf",
-      "date": "2026-11-17"
+      "hash": "e57aa8bda674f87c623be5e8c7fd17acd4468c9a64666a93cf0a875f4ddfd36b",
+      "date": "2026-11-18"
     },
     "fp-find-action": {
-      "hash": "f8ed9e25f633540849282b62066889d5f9490b20197db6e10405a81e9cd74e47",
-      "date": "2026-11-17"
+      "hash": "d31824752215b5c5156c1d05cf1e09e6933f0b6310b6a38fbcc707b5c5cd4820",
+      "date": "2026-11-18"
     },
     "fp-names-with-spaces": {
-      "hash": "3c0ae077730f6fa18b86998e7ac997fdc4de1fef5dce8427ccf89bb14b4e9fb8",
-      "date": "2026-11-17"
+      "hash": "4d2f588f1c6fc62145594752a0668f504706810d543f8f12363f37948c658b19",
+      "date": "2026-11-18"
     },
     "fp-negated-ignore": {
-      "hash": "58db736d25cb29b973a67934396d77fc090d8b483ec9448f92d1ed016998aadd",
-      "date": "2026-11-17"
+      "hash": "04c4819aeb1f08815421cafe922dff9fc94ef81be217e2a8c89e073ec85d729a",
+      "date": "2026-11-18"
     },
     "h1-control": {
-      "hash": "08fce02e41871eef25d74b04822fca9de307c1ac69a28bda54ebe1c24b664f93",
-      "date": "2026-11-17"
+      "hash": "c126d5350c0835c9e98a8c4d9d22cd9cf94f429f529429287bedb119aa1422d1",
+      "date": "2026-11-18"
     },
     "h1-subfolder": {
-      "hash": "43413579b916c164b558b8000f22f49dbdbff16c5b455b87cb3757c38df68485",
-      "date": "2026-11-17"
+      "hash": "e375aa7a200b36c65d12964babee5b5672574145ca466cc4dfe7a6a1fe420320",
+      "date": "2026-11-18"
     },
     "h2-control": {
-      "hash": "a5a885ec0c125ae59b11f5744dac67730a9a78500aa9bcea0749ad9e1de00324",
-      "date": "2026-11-17"
+      "hash": "ad9075ca16435ca4cbf2f3d5a33ccc7bb2391fb8b0a37ccddd801e8d768baebc",
+      "date": "2026-11-18"
     },
     "h2-links-and-diffs": {
-      "hash": "a264236840b7033340b331aed3587554fd6389ffe9c3d431cc775606f3a69c32",
-      "date": "2026-11-17"
+      "hash": "dcbd2507a24281c3e9478aa9da75bf99fbe7fbdbaca9826fb4677ba3a59bb9bb",
+      "date": "2026-11-18"
     },
     "ic-control": {
-      "hash": "fe2937a5a623a6455beef070b05662cb0f07e530d0a77dd9eb5711ecd590dc0e",
-      "date": "2026-11-17"
+      "hash": "01d0c34d72ca51e10f39221f7f6ec51337f76c7d615e871f3e2154e2717e52d8",
+      "date": "2026-11-18"
     },
     "ic-untracked-file": {
-      "hash": "f10c5223c81ab9651c39ae329b7b1436296ab88835a04da5039fa763d21bbdaf",
-      "date": "2026-11-17"
+      "hash": "9b967117fa16c4bd2a0f2695247a0478e80bfde82cbe30fe7e908950e7cfd5a9",
+      "date": "2026-11-18"
     },
     "rf-control": {
-      "hash": "b6a894d9f1c3d757b4ec15c3bb03e258283692505a98857e44547cd5157460ea",
-      "date": "2026-11-17"
+      "hash": "2c86e2c43c1cb3c8f8a97ddb289b6dd5d19792eff87219574907557aed4129ee",
+      "date": "2026-11-18"
     },
     "rf-echoed-prompt": {
-      "hash": "09fb23150aacf998d8dec3f54151feeff951e218f96223bba985f246f33d62cf",
-      "date": "2026-11-17"
+      "hash": "daf33532862d3d7bea5825b0044df2f32196dfeb4a577c60110dda8400fb2174",
+      "date": "2026-11-18"
     },
     "th-control": {
-      "hash": "28953333bdd0f0823b043605ab9effe9a59434070ce93aac483bd5aad4f75547",
-      "date": "2026-11-17"
+      "hash": "3862ecbcecb7825fa8384afd8e2f558f8cf1d2b1c474c07b258822b470f72229",
+      "date": "2026-11-18"
     },
     "th-fenced-heading": {
-      "hash": "aa313af8932409cff50a6b2529987f1841f45b243949ab7c8964841f3ee72039",
-      "date": "2026-11-17"
+      "hash": "4b1ea65fb7e3f6030234b99dc15a437a12abb8efbc29aa23352f63c595a85672",
+      "date": "2026-11-18"
     },
     "w-beyond": {
       "hash": "5d7fb53d5189acc512b24ca31e27357cde154dadb2a3fe7889a742d7c085c498",

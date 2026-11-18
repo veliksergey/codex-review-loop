@@ -8,8 +8,8 @@
       "place": {
         "file": "skills/codex-loop/fingerprint.sh",
         "lines": [
-          45,
-          45
+          63,
+          63
         ],
         "holds": "record F \"$f\" \"$h\" || exit 1"
       },

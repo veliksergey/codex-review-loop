@@ -8,10 +8,10 @@
       "place": {
         "file": "skills/codex-loop/task-hash.sh",
         "lines": [
-          24,
-          24
+          29,
+          29
         ],
-        "holds": "if (/^## Request/) head[NR] = \"request\""
+        "holds": "if (heading(\"## Request\")) head[NR] = \"request\""
       },
       "tag": "none",
       "severity": "P2",
@@ -23,7 +23,25 @@
         "script": "skills/codex-loop/task-hash.sh",
         "cases": [
           "an out-of-scope heading in a fenced block of the handoff ends nothing",
-          "a block fenced with backticks: a heading inside"
+          "an out-of-scope heading in an HTML comment of the handoff ends nothing",
+          "a criteria heading in a fenced block of the handoff starts nothing",
+          "a request heading in a fenced block of the handoff starts nothing",
+          "a block fenced with backticks: a heading inside:",
+          "a block fenced with tildes: a heading inside:",
+          "a block that holds a shorter fence: a heading inside:",
+          "a block closed by a longer run: a heading inside:",
+          "a run of the other mark inside a block: a heading inside:",
+          "a run of both marks inside a block: a heading inside:",
+          "a run with text after it inside a block: a heading inside:",
+          "a run after four spaces inside a block: a heading inside:",
+          "a block fenced after three spaces: a heading inside:",
+          "a tilde fence whose first line holds backticks: a heading inside:",
+          "an HTML comment: a heading inside:",
+          "an HTML comment after three spaces that closes inside a line: a heading inside:",
+          "a fence mark inside an HTML comment: a heading inside:",
+          "an HTML comment mark inside a fenced block: a heading inside:",
+          "a fenced block in the request that never closes:",
+          "an HTML comment in the request that never closes:"
         ]
       }
     }

@@ -23,8 +23,10 @@ tag and the severity of a correct finding, and how the label is proved.
 
 - **History**: two pairs from this repository's own commits, the tree before a fix and
   the tree at the fix. One of those commits corrected several defects at once, so its
-  label names several mechanisms.
-- **Derived**: one defect put back into a file of the plugin as released in 0.6.0, so
+  label names several mechanisms. These old trees also hold defects that later releases
+  corrected. Their labels name those as known defects: a finding on one is right, and it
+  is counted apart from the labeled mechanisms and from the false alarms.
+- **Derived**: one defect put back into a file of the plugin as released in 0.6.1, so
   that a single mechanism can be scored. The controls are that release unchanged.
 - **Written**: four pairs on the made-up notes service: a missing check of the owner,
   an acceptance criterion that is not met, a handoff that names a test which does not

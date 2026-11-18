@@ -254,6 +254,14 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-18: the evaluation corpus is brought up to 0.6.1, with no change to the plugin.
+  The thirteen cases that are derived from a release are now made from the plugin folder
+  of 0.6.1, so that their controls no longer hold the defects that release corrected. In
+  three of them the defect is put back into the script as 0.6.1 has it, and the labels
+  name the lines of the new fixtures. The four cases from older commits keep their
+  fixtures; their labels now name, as known defects, those of the corrected defects that
+  the old scripts hold. A case or a label that changed counts as not agreed with until a
+  person agrees with it again.
 - 2026-11-18: one test corrected after the workflow ran on 0.6.1, with no change to the
   plugin. Two new cases of `tests/fingerprint.test.sh` put a link in the place of a
   submodule and expected a fingerprint; they passed on Windows and failed on Linux and

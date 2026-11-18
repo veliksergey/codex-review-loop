@@ -8,8 +8,8 @@
       "place": {
         "file": "skills/codex-loop/fingerprint.sh",
         "lines": [
-          10,
-          10
+          12,
+          12
         ],
         "holds": "record() { printf '%s\\n' \"$*\" | git hash-object --stdin; }"
       },

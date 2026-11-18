@@ -22,7 +22,11 @@
         "env": "INSTRUCTION_CHANGES",
         "script": "skills/codex-loop/instruction-changes.sh",
         "cases": [
-          "modified, staged, untracked, and deleted instruction files are all listed"
+          "a repository without a commit:",
+          "modified, staged, untracked, and deleted instruction files are all listed",
+          "from a subfolder: the same list, with paths from the root",
+          "a file removed from the index and still on disk:",
+          "a path with a space"
         ]
       }
     }
