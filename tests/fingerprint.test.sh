@@ -431,20 +431,33 @@ if g -C "$tmp/super" -c protocol.file.allow=always submodule add -q "$tmp/lib" l
   { g clone -q "$tmp/lib" "$tmp/lib-one" 2>/dev/null && g clone -q "$tmp/lib" "$tmp/lib-two" 2>/dev/null &&
     rm -rf -- "${tmp:?}/super/lib" && make_link "$tmp/super/lib" "$tmp/lib-one"; } ||
     abort "link in the place of the submodule"
-  before="$(fp_in "$tmp/super")"
-  echo elsewhere > "$tmp/lib-one/elsewhere.txt" || abort "file behind the link"
-  after="$(fp_in "$tmp/super")"
-  if four "$before" && four "$after" && [ "$(line "$before" 4)" = "$(line "$after" 4)" ]; then
-    pass "link in the place of a submodule: not followed, untracked hash unchanged"
+  if g -C "$tmp/super" status --porcelain >/dev/null 2>&1; then
+    before="$(fp_in "$tmp/super")"
+    echo elsewhere > "$tmp/lib-one/elsewhere.txt" || abort "file behind the link"
+    after="$(fp_in "$tmp/super")"
+    if four "$before" && four "$after" && [ "$(line "$before" 4)" = "$(line "$after" 4)" ]; then
+      pass "link in the place of a submodule: not followed, untracked hash unchanged"
+    else
+      fail "link in the place of a submodule: untracked hash changed, so the link was followed"
+    fi
+    { rm -f "$tmp/super/lib" && make_link "$tmp/super/lib" "$tmp/lib-two"; } || abort "retarget the submodule link"
+    before="$after"; after="$(fp_in "$tmp/super")"
+    if four "$after" && [ "$(line "$before" 4)" != "$(line "$after" 4)" ]; then
+      pass "link in the place of a submodule, retargeted: untracked hash changes"
+    else
+      fail "link in the place of a submodule, retargeted: untracked hash unchanged"
+    fi
+    skip "link in the place of a submodule, where git gives no status: git on this system gives one"
   else
-    fail "link in the place of a submodule: untracked hash changed, so the link was followed"
-  fi
-  { rm -f "$tmp/super/lib" && make_link "$tmp/super/lib" "$tmp/lib-two"; } || abort "retarget the submodule link"
-  before="$after"; after="$(fp_in "$tmp/super")"
-  if four "$after" && [ "$(line "$before" 4)" != "$(line "$after" 4)" ]; then
-    pass "link in the place of a submodule, retargeted: untracked hash changes"
-  else
-    fail "link in the place of a submodule, retargeted: untracked hash unchanged"
+    # Git stops on a symbolic link in the place of a submodule, as on Linux and macOS.
+    # Without its status there is no fingerprint, and none must be printed.
+    out="$(fp_in "$tmp/super")"; rc=$?
+    if [ $rc -ne 0 ] && [ -z "$out" ]; then
+      pass "link in the place of a submodule, where git gives no status: exits non-zero and prints no hash"
+    else
+      fail "link in the place of a submodule, where git gives no status: exit $rc, printed $(printf '%s' "$out" | grep -c .) line(s)"
+    fi
+    skip "link in the place of a submodule, not followed and retargeted: git on this system gives no status for such a tree"
   fi
   rm -f "$tmp/super/lib" || abort "remove the submodule link"
 else

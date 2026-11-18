@@ -254,6 +254,13 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-18: one test corrected after the workflow ran on 0.6.1, with no change to the
+  plugin. Two new cases of `tests/fingerprint.test.sh` put a link in the place of a
+  submodule and expected a fingerprint; they passed on Windows and failed on Linux and
+  macOS. Git stops on a symbolic link in the place of a submodule, so there is no status
+  to hash and `fingerprint.sh` exits non-zero, as it did in 0.6.0. The two cases now run
+  only where git gives a status for such a tree, which is Windows with a junction.
+  Elsewhere one case checks that the script exits non-zero and prints no hash.
 - 2026-11-17: a runner for reviews of the evaluation corpus, with no change to the
   plugin. `tests/eval_review.py run <case>` runs one Codex review on a case as the review
   loop runs one: the plugin's prompt, the flags of `tool-flags.sh`, the read-only
