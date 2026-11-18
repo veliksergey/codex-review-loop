@@ -71,13 +71,21 @@ https://github.com/veliksergey/codex-review-loop
 ## Privacy
 
 The plugin's authors collect nothing: the plugin runs no service of its own, sends
-nothing to its authors, and contains no analytics. The only data that leaves your
-machine is what the Codex CLI sends to OpenAI under your own ChatGPT account: the
-task file, whatever the reviewer reads while it reviews, and its web searches.
-OpenAI's handling of that data is governed by
-its privacy policy, https://openai.com/policies/privacy-policy, and by your ChatGPT
-plan. Review logs stay in `~/.claude/codex-reviews/` on your machine until you delete
-them. For product or security concerns, open an issue in the repository:
+nothing to its authors, and contains no analytics. Two tools send data to their own
+providers while the loop runs:
+
+- The Codex CLI sends OpenAI the task file, whatever the reviewer reads while it
+  reviews, and its web searches, under your own ChatGPT account. OpenAI's handling of
+  that data is governed by its privacy policy,
+  https://openai.com/policies/privacy-policy, and by your ChatGPT plan.
+- Claude Code sends the model provider you run it with your prompts and the model's
+  outputs, as it does in every session; see https://code.claude.com/docs/en/data-usage
+  (read on 2026-11-16). The code Claude reads for the task is part of that
+  conversation, and so is Codex's review, which the loop shows to Claude so that it
+  can check each finding.
+
+Review logs stay in `~/.claude/codex-reviews/` on your machine until you delete them.
+For product or security concerns, open an issue in the repository:
 https://github.com/veliksergey/codex-review-loop/issues
 
 Full guide, cheat sheet, changelog, and manual install options:

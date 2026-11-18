@@ -264,8 +264,10 @@ Rules for the command:
   `--dangerously-bypass-approvals-and-sandbox`.
 - Check that the reviewer changed nothing. Before the run, record the output of
   `bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"`, run exactly as written: four hashes,
-  of the file status, the unstaged diff, the staged diff, and the contents of
-  untracked files, with untracked links recorded by where they point. The Codex
+  of the commit with the file status, the unstaged diff, the staged diff, and the
+  contents of untracked files as they are on disk, with untracked links recorded by
+  where they point, and a submodule or another repository inside this one recorded by
+  its own four hashes. The Codex
   command prints the second fingerprint at its end; edit nothing in the repository
   while it runs, and compare the two. If the second run printed an error in place of
   four hashes, stop the loop and report it: a fingerprint that failed proves nothing.

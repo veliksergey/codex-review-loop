@@ -18,6 +18,11 @@ task="$HOME/.claude/codex-reviews/$(basename "$root")/task.md"
 # the section it stands in. Where a heading appears twice, the choice errs toward hashing
 # more. A line inside a fenced block or an HTML comment is never a heading.
 text="$(LC_ALL=C awk '
+  # Whether the line is this heading whole: its name, and after it nothing but text in
+  # parentheses or a colon. "## Request/response examples" is no request heading.
+  function heading(name) {
+    return substr($0, 1, length(name)) == name && substr($0, length(name) + 1) ~ /^( *\([^()]*\))? *:?$/
+  }
   { sub(/[ \t\r]+$/, "") }
   {
     line[NR] = $0
@@ -36,11 +41,11 @@ text="$(LC_ALL=C awk '
       # It opens on such a run. After backticks the line may hold no other backtick.
       fence = run
     } else if (substr(mark, 1, 4) == "<!--") comment = !index(mark, "-->")
-    else if (/^## Request/) head[NR] = "request"
-    else if (/^## Acceptance criteria/) head[NR] = "criteria"
-    else if (/^## Out of scope/) head[NR] = "scope"
-    else if (/^## Decisions during implementation/) head[NR] = "decisions"
-    else if (/^## Handoff/) head[NR] = "handoff"
+    else if (heading("## Request")) head[NR] = "request"
+    else if (heading("## Acceptance criteria")) head[NR] = "criteria"
+    else if (heading("## Out of scope")) head[NR] = "scope"
+    else if (heading("## Decisions during implementation")) head[NR] = "decisions"
+    else if (heading("## Handoff")) head[NR] = "handoff"
   }
   END {
     # The first request heading, the last criteria heading, and the headings below that.

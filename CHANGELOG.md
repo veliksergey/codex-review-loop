@@ -5,6 +5,39 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.6.1 — 2026-11-18
+
+Six fixes to two scripts of the loop. A review of the released scripts found the
+defects; each was reproduced before it was fixed, and each has a regression test.
+
+- The fingerprint missed a change that git's settings hide. An untracked file was
+  hashed the way git would store it, so with `core.autocrlf=true` a change from LF to
+  CRLF left the fingerprint the same. `fingerprint.sh` now hashes the bytes on disk.
+- The fingerprint did not hold the commit. A clean tree at another commit printed the
+  same four hashes. The commit is now part of the first hash; a repository without a
+  commit still gets four.
+- The fingerprint did not look into a submodule. Git says that a submodule is changed,
+  not what changed in it, so a submodule that was dirty already could be edited again
+  unseen. A submodule that is checked out is now recorded by its own four hashes.
+- The fingerprint could not be taken, and the loop stopped, when the tree held an
+  untracked folder that is a git repository of its own. Such a folder is now recorded by
+  its own four hashes, and a change inside it is seen.
+- The fingerprint could not be taken when an untracked folder held a folder that git
+  ignores and that cannot be read. Ignored folders are no longer entered in the search
+  for links; nothing in them counted before either.
+- The loop reported a changed request when it had not changed. `task-hash.sh` took any
+  heading that begins like one of the task template's five headings for that heading,
+  so an edit under `## Request/response examples` in the handoff changed the hash. A
+  heading now counts only when it is the name alone, with nothing after it but words in
+  parentheses, as in `## Request (verbatim)`, or a colon.
+- The README in the plugin folder now says, as the main README does, that Claude Code
+  itself sends your prompts and the model's outputs to the model provider you run it
+  with.
+
+A fingerprint taken with 0.6.1 differs from one taken with 0.6.0 for the same tree,
+because the commit is now part of it. That matters only inside one review round, where
+both fingerprints come from the same version.
+
 ## 0.6.0 — 2026-11-16
 
 - The loop writes a summary of each run, `<run>-summary.json`, to the log folder at the

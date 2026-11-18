@@ -309,6 +309,23 @@ shows "an HTML comment that closes where it opens hides nothing below" '<!-->'
 shows "an HTML comment mark inside a line opens no comment" 'See <!-- this.'
 shows "an HTML comment mark after four spaces opens no comment" '    <!--'
 
+# A heading that only begins like one of the template's headings is text. In the handoff
+# it would otherwise start a request, and an edit below it would look like a change of
+# the request.
+write "add a button" "The button exists." "used a link"
+put "Files: a.txt" "" "## Request/response examples" "" "It answers 200."
+run
+first="$out"
+reword "It answers 200." "It answers 403."
+run
+same "a heading in the handoff that only begins like the request heading starts nothing"
+# Words in parentheses and a colon after the name leave a heading what it is.
+lines "## Request:" "" "add a button" "" "## Acceptance criteria (all of them):" "" "1. The button exists."
+run
+want="$(printf '## Request:\nadd a button\n## Acceptance criteria (all of them):\n1. The button exists.\n' | git hash-object --stdin)"
+if [ $rc -eq 0 ] && [ "$out" = "$want" ]; then pass "a heading with a colon or with words in parentheses is still a heading"
+else fail "a heading with a colon or with words in parentheses: exit $rc, $out, wanted $want"; fi
+
 # A heading without the word in brackets is still the request.
 write "add a button" "The button exists." "used a link"
 reword "## Request (verbatim)" "## Request"

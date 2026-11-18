@@ -313,6 +313,241 @@ else
 fi
 { rm -f "$repo/vendor" "$tmp/vendor3/new/inner" && g -C "$repo" checkout -q -- vendor/keep.txt; } || abort "restore vendor folder"
 
+# The cases below each work in a small repository of their own.
+# new_repo <folder>: a repository with one commit. fp_in <folder>: its fingerprint.
+new_repo() {
+  mkdir -p "$1" && g -C "$1" init -q . && g -C "$1" config core.autocrlf false &&
+    echo kept > "$1/kept.txt" && g -C "$1" add kept.txt && g -C "$1" commit -q -m first
+}
+fp_in() { (cd "$1" && bash "$fp" 2>/dev/null); }
+four() { [ "$(printf '%s\n' "$1" | grep -cE '^[0-9a-f]{40}([0-9a-f]{24})?$')" -eq 4 ]; }
+
+# An untracked file is hashed by its bytes on disk. With core.autocrlf, git's clean
+# filter makes the same text of LF and CRLF, and the fingerprint must not.
+{ new_repo "$tmp/eol" && g -C "$tmp/eol" config core.autocrlf true &&
+  printf 'one\ntwo\n' > "$tmp/eol/new.txt"; } || abort "repository for line endings"
+before="$(fp_in "$tmp/eol")"
+printf 'one\r\ntwo\r\n' > "$tmp/eol/new.txt" || abort "CRLF file"
+after="$(fp_in "$tmp/eol")"
+if four "$before" && four "$after" && [ "$(line "$before" 4)" != "$(line "$after" 4)" ]; then
+  pass "untracked file changed from LF to CRLF under core.autocrlf: untracked hash changes"
+else
+  fail "untracked file changed from LF to CRLF under core.autocrlf: untracked hash unchanged"
+fi
+
+# The commit under the tree is part of the fingerprint: a clean tree at another commit
+# has the same status, the same diffs, and the same untracked files.
+{ new_repo "$tmp/commits" && echo two > "$tmp/commits/kept.txt" &&
+  g -C "$tmp/commits" commit -q -am second; } || abort "repository with two commits"
+before="$(fp_in "$tmp/commits")"
+g -C "$tmp/commits" checkout -q HEAD~1 || abort "checkout the first commit"
+after="$(fp_in "$tmp/commits")"
+if four "$before" && four "$after" && [ "$before" != "$after" ]; then
+  pass "clean tree at another commit: hashes change"
+else
+  fail "clean tree at another commit: hashes unchanged"
+fi
+{ mkdir -p "$tmp/unborn" && g -C "$tmp/unborn" init -q . && echo new > "$tmp/unborn/new.txt"; } ||
+  abort "repository without a commit"
+out="$(fp_in "$tmp/unborn")"; rc=$?
+if [ $rc -eq 0 ] && four "$out"; then
+  pass "repository without a commit: prints four hashes"
+else
+  fail "repository without a commit: exit $rc, output: $out"
+fi
+# Only "no commit" may stand for the commit. A git that fails to name it in another way
+# fails the fingerprint.
+mkdir -p "$tmp/bin-head" || abort "mkdir $tmp/bin-head"
+real_git="$(command -v git)" || abort "git not found"
+printf '#!/usr/bin/env bash\nfor a in "$@"; do [ "$a" = --verify ] && exit 42; done\nexec "%s" "$@"\n' \
+  "$real_git" > "$tmp/bin-head/git" || abort "git stand-in for the commit"
+chmod +x "$tmp/bin-head/git" || abort "chmod git stand-in for the commit"
+out="$(cd "$tmp/commits" && PATH="$tmp/bin-head:$PATH" bash "$fp" 2>/dev/null)"; rc=$?
+if [ $rc -ne 0 ] && [ -z "$out" ]; then
+  pass "a git that cannot name the commit: exits non-zero and prints no hash"
+else
+  fail "a git that cannot name the commit: exit $rc, printed $(printf '%s' "$out" | grep -c .) line(s)"
+fi
+
+# An untracked folder that is a repository of its own: git lists the folder and not its
+# files. It is recorded by its own fingerprint.
+{ new_repo "$tmp/outer" && new_repo "$tmp/outer/nested"; } || abort "repository inside a repository"
+out="$(fp_in "$tmp/outer")"; rc=$?
+if [ $rc -eq 0 ] && four "$out"; then
+  pass "untracked folder that is a repository of its own: prints four hashes"
+else
+  fail "untracked folder that is a repository of its own: exit $rc, output: $out"
+fi
+echo more >> "$tmp/outer/nested/kept.txt" || abort "edit in the inner repository"
+after="$(fp_in "$tmp/outer")"
+if four "$after" && [ "$(line "$out" 4)" != "$(line "$after" 4)" ]; then
+  pass "edit inside an untracked repository: untracked hash changes"
+else
+  fail "edit inside an untracked repository: untracked hash unchanged"
+fi
+# A step that fails in the inner repository fails the whole fingerprint.
+mkdir -p "$tmp/bin-inner" || abort "mkdir $tmp/bin-inner"
+real_git="$(command -v git)" || abort "git not found"
+printf '#!/usr/bin/env bash\nn=0; l=0\nfor a in "$@"; do case "$a" in */nested) n=1 ;; ls-files) l=1 ;; esac; done\n[ "$n$l" = 11 ] && exit 42\nexec "%s" "$@"\n' \
+  "$real_git" > "$tmp/bin-inner/git" || abort "git stand-in for the inner repository"
+chmod +x "$tmp/bin-inner/git" || abort "chmod git stand-in for the inner repository"
+out="$(cd "$tmp/outer" && PATH="$tmp/bin-inner:$PATH" bash "$fp" 2>/dev/null)"; rc=$?
+if [ $rc -ne 0 ] && [ -z "$out" ]; then
+  pass "a failing step inside an untracked repository: exits non-zero and prints no hash"
+else
+  fail "a failing step inside an untracked repository: exit $rc, printed $(printf '%s' "$out" | grep -c .) line(s)"
+fi
+
+# A submodule: git's status and diff say that it is changed, not what changed in it.
+{ new_repo "$tmp/lib" && new_repo "$tmp/super"; } || abort "repositories for a submodule"
+if g -C "$tmp/super" -c protocol.file.allow=always submodule add -q "$tmp/lib" lib >/dev/null 2>&1 &&
+  g -C "$tmp/super" commit -q -m lib; then
+  echo two > "$tmp/super/lib/kept.txt" || abort "first edit in the submodule"
+  before="$(fp_in "$tmp/super")"
+  echo three > "$tmp/super/lib/kept.txt" || abort "second edit in the submodule"
+  after="$(fp_in "$tmp/super")"
+  if four "$before" && four "$after" && [ "$before" != "$after" ]; then
+    pass "submodule that is dirty already, edited again: hashes change"
+  else
+    fail "submodule that is dirty already, edited again: hashes unchanged"
+  fi
+  echo new > "$tmp/super/lib/new.txt" || abort "untracked file in the submodule"
+  before="$after"; after="$(fp_in "$tmp/super")"
+  if four "$after" && [ "$before" != "$after" ]; then
+    pass "untracked file in a submodule: hashes change"
+  else
+    fail "untracked file in a submodule: hashes unchanged"
+  fi
+  # A clone has the submodule's folder and nothing in it.
+  g clone -q "$tmp/super" "$tmp/super-clone" 2>/dev/null || abort "clone without its submodule"
+  out="$(fp_in "$tmp/super-clone")"; rc=$?
+  if [ $rc -eq 0 ] && four "$out"; then
+    pass "submodule that is not checked out: prints four hashes"
+  else
+    fail "submodule that is not checked out: exit $rc, output: $out"
+  fi
+  # A link in the place of the submodule is recorded by where it points. What stands
+  # behind it is another checkout, and nothing in that one counts.
+  { g clone -q "$tmp/lib" "$tmp/lib-one" 2>/dev/null && g clone -q "$tmp/lib" "$tmp/lib-two" 2>/dev/null &&
+    rm -rf -- "${tmp:?}/super/lib" && make_link "$tmp/super/lib" "$tmp/lib-one"; } ||
+    abort "link in the place of the submodule"
+  before="$(fp_in "$tmp/super")"
+  echo elsewhere > "$tmp/lib-one/elsewhere.txt" || abort "file behind the link"
+  after="$(fp_in "$tmp/super")"
+  if four "$before" && four "$after" && [ "$(line "$before" 4)" = "$(line "$after" 4)" ]; then
+    pass "link in the place of a submodule: not followed, untracked hash unchanged"
+  else
+    fail "link in the place of a submodule: untracked hash changed, so the link was followed"
+  fi
+  { rm -f "$tmp/super/lib" && make_link "$tmp/super/lib" "$tmp/lib-two"; } || abort "retarget the submodule link"
+  before="$after"; after="$(fp_in "$tmp/super")"
+  if four "$after" && [ "$(line "$before" 4)" != "$(line "$after" 4)" ]; then
+    pass "link in the place of a submodule, retargeted: untracked hash changes"
+  else
+    fail "link in the place of a submodule, retargeted: untracked hash unchanged"
+  fi
+  rm -f "$tmp/super/lib" || abort "remove the submodule link"
+else
+  skip "a submodule: this git could not add one from a local folder"
+fi
+
+# A folder that git ignores is not searched for links. One that cannot be read would
+# stop the search, and with it the fingerprint.
+# closed <folder> <on|off>: takes away the right to list a folder, or gives it back. On
+# Windows that is a rule for the current user; the mode of a folder means nothing there.
+closed() {
+  case "$(uname -s)" in
+    MINGW* | MSYS* | CYGWIN*)
+      if [ "$2" = on ]; then set -- "$1" /deny "${USERNAME:-}:(RD)"; else set -- "$1" /remove:d "${USERNAME:-}"; fi
+      MSYS2_ARG_CONV_EXCL='*' icacls "$(cygpath -w "$1")" "$2" "$3" > /dev/null 2>&1 ;;
+    *) if [ "$2" = on ]; then chmod 000 "$1"; else chmod 755 "$1"; fi ;;
+  esac
+}
+{ new_repo "$tmp/closed" && printf 'cache/\n' > "$tmp/closed/.git/info/exclude" &&
+  mkdir -p "$tmp/closed/new/cache" && echo x > "$tmp/closed/new/cache/x.txt" &&
+  echo y > "$tmp/closed/new/y.txt"; } || abort "ignored folder inside an untracked folder"
+closed "$tmp/closed/new/cache" on
+if ls "$tmp/closed/new/cache" >/dev/null 2>&1; then
+  skip "an unreadable ignored folder inside an untracked folder: this system lets the folder be read anyway"
+else
+  out="$(fp_in "$tmp/closed")"; rc=$?
+  if [ $rc -eq 0 ] && four "$out"; then
+    pass "an unreadable ignored folder inside an untracked folder: prints four hashes"
+  else
+    fail "an unreadable ignored folder inside an untracked folder: exit $rc, output: $out"
+  fi
+fi
+# Readable again, so that the temporary folder can be removed.
+closed "$tmp/closed/new/cache" off
+ls "$tmp/closed/new/cache" >/dev/null 2>&1 || abort "make the folder readable again"
+
+# The name of an untracked folder is no pathspec. Git reads ":new" as the path new with
+# nothing special asked, and would then name no ignored folder below the real one.
+if mkdir -p "$tmp/closed/:new/cache" 2>/dev/null && [ -d "$tmp/closed/:new/cache" ]; then
+  { echo x > "$tmp/closed/:new/cache/x.txt" && echo y > "$tmp/closed/:new/y.txt"; } ||
+    abort "folder named like a pathspec"
+  closed "$tmp/closed/:new/cache" on
+  if ls "$tmp/closed/:new/cache" >/dev/null 2>&1; then
+    skip "an unreadable ignored folder in a folder named like a pathspec: this system lets the folder be read anyway"
+  else
+    out="$(fp_in "$tmp/closed")"; rc=$?
+    if [ $rc -eq 0 ] && four "$out"; then
+      pass "an unreadable ignored folder in a folder named like a pathspec: prints four hashes"
+    else
+      fail "an unreadable ignored folder in a folder named like a pathspec: exit $rc, output: $out"
+    fi
+  fi
+  closed "$tmp/closed/:new/cache" off
+  ls "$tmp/closed/:new/cache" >/dev/null 2>&1 || abort "make the folder named like a pathspec readable again"
+else
+  skip "an unreadable ignored folder in a folder named like a pathspec: this system allows no name that begins with a colon"
+fi
+
+# A repository inside this one is left to its own fingerprint, with its own ignore
+# rules: the search for links of the outer one does not enter it. Here an inner
+# repository ignores a folder that cannot be read, at the top and below a new folder.
+{ new_repo "$tmp/both" && new_repo "$tmp/both/top" && new_repo "$tmp/both/new/deep" &&
+  echo y > "$tmp/both/new/y.txt"; } || abort "repositories inside a repository"
+for inner in "$tmp/both/top" "$tmp/both/new/deep"; do
+  { printf 'cache/\n' > "$inner/.git/info/exclude" && mkdir -p "$inner/cache" &&
+    echo x > "$inner/cache/x.txt"; } || abort "ignored folder in an inner repository"
+  closed "$inner/cache" on
+done
+if ls "$tmp/both/top/cache" >/dev/null 2>&1 || ls "$tmp/both/new/deep/cache" >/dev/null 2>&1; then
+  skip "an unreadable folder that an inner repository ignores: this system lets the folder be read anyway"
+else
+  out="$(fp_in "$tmp/both")"; rc=$?
+  if [ $rc -eq 0 ] && four "$out"; then
+    pass "an unreadable folder that an inner repository ignores: prints four hashes"
+  else
+    fail "an unreadable folder that an inner repository ignores: exit $rc, output: $out"
+  fi
+fi
+for inner in "$tmp/both/top" "$tmp/both/new/deep"; do
+  closed "$inner/cache" off
+  ls "$inner/cache" >/dev/null 2>&1 || abort "make the folder of an inner repository readable again"
+done
+
+# The name of an ignored folder is no pattern: beside the ignored folder c[a]che, a
+# link in the folder cache, which that name would match as a pattern, is still recorded.
+{ new_repo "$tmp/names" && printf 'c\\[a\\]che/\n' > "$tmp/names/.git/info/exclude" &&
+  mkdir -p "$tmp/names/new/c[a]che" "$tmp/names/new/cache" "$tmp/names-one" "$tmp/names-two" &&
+  echo x > "$tmp/names/new/c[a]che/x.txt" && echo y > "$tmp/names/new/y.txt"; } ||
+  abort "ignored folder with a pattern in its name"
+{ g -C "$tmp/names" check-ignore -q 'new/c[a]che/x.txt' &&
+  ! g -C "$tmp/names" check-ignore -q new/cache/any.txt; } || abort "only the folder c[a]che should be ignored"
+make_link "$tmp/names/new/cache/lnk" "$tmp/names-one" || abort "link beside the ignored folder"
+before="$(fp_in "$tmp/names")"
+{ rm -f "$tmp/names/new/cache/lnk" && make_link "$tmp/names/new/cache/lnk" "$tmp/names-two"; } ||
+  abort "retarget the link beside the ignored folder"
+after="$(fp_in "$tmp/names")"
+if four "$before" && four "$after" && [ "$(line "$before" 4)" != "$(line "$after" 4)" ]; then
+  pass "link beside an ignored folder whose name holds pattern characters, retargeted: untracked hash changes"
+else
+  fail "link beside an ignored folder whose name holds pattern characters, retargeted: untracked hash unchanged"
+fi
+rm -f "$tmp/names/new/cache/lnk" || abort "remove the link beside the ignored folder"
+
 # A git that fails on ls-files: the script must fail without printing any hash.
 mkdir -p "$tmp/bin" || abort "mkdir $tmp/bin"
 real_git="$(command -v git)" || abort "git not found"
