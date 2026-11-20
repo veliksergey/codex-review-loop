@@ -1,6 +1,8 @@
 {
   "expect": "finding",
-  "known_defects": [],
+  "known_defects": [
+    "A tracked file reaches the fingerprint only through git's status and diffs, so a change that git does not report leaves the four hashes the same: other line endings in a file that is modified already, with `core.autocrlf=true`; a change of the same size in text that a clean filter drops; or an edit to a file marked with `git update-index --assume-unchanged` (corrected in 0.6.2)."
+  ],
   "mechanisms": [
     {
       "mechanism": "The unstaged and the staged diff are taken with the diff settings of the person's git. An external diff tool (`diff.external`) or a textconv driver then writes the text that is hashed. A tool that prints the same for two states of a file, or nothing at all, hides an edit to a file that was already modified: all four hashes stay the same, and a write by the reviewer goes unnoticed.",

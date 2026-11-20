@@ -1,6 +1,8 @@
 {
   "expect": "finding",
-  "known_defects": [],
+  "known_defects": [
+    "A tracked file reaches the fingerprint only through git's status and diffs, so a change that git does not report leaves the four hashes the same: other line endings in a file that is modified already, with `core.autocrlf=true`; a change of the same size in text that a clean filter drops; or an edit to a file marked with `git update-index --assume-unchanged` (corrected in 0.6.2)."
+  ],
   "mechanisms": [
     {
       "mechanism": "An untracked file is recorded by its path and the hash of its contents. Its executable bit is not part of the record, although git commits it: a change of the bit alone leaves the fingerprint the same.",

@@ -1,6 +1,8 @@
 {
   "expect": "finding",
-  "known_defects": [],
+  "known_defects": [
+    "A tracked file reaches the fingerprint only through git's status and diffs, so a change that git does not report leaves the four hashes the same: other line endings in a file that is modified already, with `core.autocrlf=true`; a change of the same size in text that a clean filter drops; or an edit to a file marked with `git update-index --assume-unchanged` (corrected in 0.6.2)."
+  ],
   "mechanisms": [
     {
       "mechanism": "The name of an untracked folder is passed to `find` as its first argument, unguarded. A name that starts with a hyphen is read by `find` as part of its expression. With GNU find, `-delete` then applies to the current folder, which the script has just set to the repository's root: the working tree is deleted. With another find the fingerprint fails.",

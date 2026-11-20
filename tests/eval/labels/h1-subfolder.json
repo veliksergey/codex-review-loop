@@ -7,7 +7,8 @@
     "An untracked file is hashed the way git would store it: with `core.autocrlf=true`, a change from LF to CRLF leaves the fingerprint the same (corrected in 0.6.1).",
     "The commit is not part of the fingerprint: a clean tree at another commit gives the same four hashes (corrected in 0.6.1).",
     "A submodule is not looked into: what changes in one that is dirty already is not seen, and on Windows neither is a junction in its place that is pointed elsewhere (corrected in 0.6.1).",
-    "Nothing in an untracked folder that is a git repository of its own is covered: a change there leaves the four hashes the same (corrected in 0.6.1)."
+    "Nothing in an untracked folder that is a git repository of its own is covered: a change there leaves the four hashes the same (corrected in 0.6.1).",
+    "A tracked file reaches the fingerprint only through git's status and diffs, so a change that git does not report leaves the four hashes the same: other line endings in a file that is modified already, with `core.autocrlf=true`; a change of the same size in text that a clean filter drops; or an edit to a file marked with `git update-index --assume-unchanged` (corrected in 0.6.2)."
   ],
   "mechanisms": [
     {

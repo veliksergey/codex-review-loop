@@ -6,7 +6,7 @@ Limit each user to 100 notes.
 
 ## Acceptance criteria
 
-1. `POST /notes` is answered with 409 and an error message when the user already has 100 notes, and no note is added.
+1. `POST /notes` with a title and a body that are acceptable is answered with 409 and an error message when the user already has 100 notes, and no note is added.
 2. The limit counts a user's own notes only: the notes of other users do not use it up.
 
 ## Out of scope

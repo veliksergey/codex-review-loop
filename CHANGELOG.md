@@ -274,6 +274,16 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-20: two corrections to the evaluation corpus, with no change to the plugin.
+  The labels of the eleven cases whose fixture holds a fingerprint check older than 0.6.2
+  now name, as a known defect, the one that 0.6.2 corrected: the seven cases made from
+  the fingerprint script of 0.6.1, and the four cases from older commits. A finding on it
+  is right and is counted apart. And in the task file that the cases `w-handoff` and
+  `w-handoff-control` share, the first criterion is now worded for a note that is
+  acceptable. It named no exception, while a decision of the implementer made one, so
+  the control held a criterion that its code did not meet. No fixture made from a commit
+  changes. A case or a label that changed counts as not agreed with until a person
+  agrees with it again.
 - 2026-11-18: the workflow stops a job after 30 minutes, where it was 20. With the derived
   cases of the evaluation corpus made from 0.6.1, their proofs take longer on Windows,
   and the job there was stopped at the limit just as it printed that every test had

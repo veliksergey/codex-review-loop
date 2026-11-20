@@ -1,48 +1,48 @@
 {
   "agreed": {
     "fp-control": {
-      "hash": "c3d58154b4307c7eb4ccfebafade93e2abad4690681db0d4daf32fc6fa4d9c32",
-      "date": "2026-11-18"
+      "hash": "cf595bb9eb31b8bbd7afe378519359e039e864aab905744783b00096f1109529",
+      "date": "2026-11-20"
     },
     "fp-diff-settings": {
-      "hash": "80de941088553f9ca26a6e1bc04a37c4156201811e5ec2d31bd8ce8822662843",
-      "date": "2026-11-18"
+      "hash": "41f8b5029db86fc90c6050e55da3e30e84f2bd9f2d854f17b7b6ae3aa29760bc",
+      "date": "2026-11-20"
     },
     "fp-executable-bit": {
-      "hash": "6fc166c233cae44de37975df2918dd36b2e568cdbeec2dc36482f6cc086bbacb",
-      "date": "2026-11-18"
+      "hash": "68878db723fc08cea70dedd89c4d0e3262282c638a05ad078b8b3a60d80dcbd4",
+      "date": "2026-11-20"
     },
     "fp-failing-step": {
-      "hash": "e57aa8bda674f87c623be5e8c7fd17acd4468c9a64666a93cf0a875f4ddfd36b",
-      "date": "2026-11-18"
+      "hash": "27f538c8021b48eff211f0eb25c7b46ac884f61c223c8dc69cbef43d48f664c1",
+      "date": "2026-11-20"
     },
     "fp-find-action": {
-      "hash": "d31824752215b5c5156c1d05cf1e09e6933f0b6310b6a38fbcc707b5c5cd4820",
-      "date": "2026-11-18"
+      "hash": "03795c944bc0c3beb72407a576c32ed7b1cdd75c03ec15159a0b24224c019bcc",
+      "date": "2026-11-20"
     },
     "fp-names-with-spaces": {
-      "hash": "4d2f588f1c6fc62145594752a0668f504706810d543f8f12363f37948c658b19",
-      "date": "2026-11-18"
+      "hash": "54604f864b5985f651a8b74d42eb2f0ac05dec85e89a1ee1a5cd84bcff4cf5ed",
+      "date": "2026-11-20"
     },
     "fp-negated-ignore": {
-      "hash": "04c4819aeb1f08815421cafe922dff9fc94ef81be217e2a8c89e073ec85d729a",
-      "date": "2026-11-18"
+      "hash": "5ca7387dde23cccf3bb66580be509c56e3278182fda9feb57bd8514117498cf9",
+      "date": "2026-11-20"
     },
     "h1-control": {
-      "hash": "c126d5350c0835c9e98a8c4d9d22cd9cf94f429f529429287bedb119aa1422d1",
-      "date": "2026-11-18"
+      "hash": "4bead28579fea637407a17ace96c6da0c3f4b6f603bc2fa4f6b28624cd317ed5",
+      "date": "2026-11-20"
     },
     "h1-subfolder": {
-      "hash": "e375aa7a200b36c65d12964babee5b5672574145ca466cc4dfe7a6a1fe420320",
-      "date": "2026-11-18"
+      "hash": "b27ba3f7260191f2534997182a29ab1f3f6d0e347a2f895af79c8d787d714977",
+      "date": "2026-11-20"
     },
     "h2-control": {
-      "hash": "ad9075ca16435ca4cbf2f3d5a33ccc7bb2391fb8b0a37ccddd801e8d768baebc",
-      "date": "2026-11-18"
+      "hash": "f17637463625e9d0c1b1fafd6accedc9ba2734893a0f301cb41a50d4cac67a79",
+      "date": "2026-11-20"
     },
     "h2-links-and-diffs": {
-      "hash": "dcbd2507a24281c3e9478aa9da75bf99fbe7fbdbaca9826fb4677ba3a59bb9bb",
-      "date": "2026-11-18"
+      "hash": "6fa484760271865acc5fb2c3f180b04cfc8c26a7ee58a24eca430034a7516675",
+      "date": "2026-11-20"
     },
     "ic-control": {
       "hash": "01d0c34d72ca51e10f39221f7f6ec51337f76c7d615e871f3e2154e2717e52d8",
@@ -85,12 +85,12 @@
       "date": "2026-11-17"
     },
     "w-handoff": {
-      "hash": "c4f0047d42493d7c27aba8156c872b0f5d8b97acf42f97c35a86b727f4de692d",
-      "date": "2026-11-17"
+      "hash": "1dfc6d8f4222eded9951dce1e5c982899cd03c073a600934377180e39ee22dac",
+      "date": "2026-11-20"
     },
     "w-handoff-control": {
-      "hash": "848bdab2743c71faf654217994c679b1a54d677feb1fd03907f21fe88d36b331",
-      "date": "2026-11-17"
+      "hash": "60ee65265758e2a96b158e84a8b8bf4e004837cc1757243ff54c78fac8ee4076",
+      "date": "2026-11-20"
     },
     "w-ownership": {
       "hash": "4c09ecfccfcc9827a057dd85d2151bf9a805f40acb6e03b6d2a177f719804498",

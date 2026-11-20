@@ -1,6 +1,8 @@
 {
   "expect": "finding",
-  "known_defects": [],
+  "known_defects": [
+    "A tracked file reaches the fingerprint only through git's status and diffs, so a change that git does not report leaves the four hashes the same: other line endings in a file that is modified already, with `core.autocrlf=true`; a change of the same size in text that a clean filter drops; or an edit to a file marked with `git update-index --assume-unchanged` (corrected in 0.6.2)."
+  ],
   "mechanisms": [
     {
       "mechanism": "The script goes on when one of its steps fails. A git command that fails then leaves an empty or a partial input to the hash, and four hashes are printed with exit code 0. Two runs that fail in the same way print the same four hashes, so the loop reports an unchanged tree without having read it. One step still stops the script: the lookup of the commit, which tests its exit code itself. So the script does stop outside a repository.",

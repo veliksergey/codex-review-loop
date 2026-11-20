@@ -1,6 +1,8 @@
 {
   "expect": "finding",
-  "known_defects": [],
+  "known_defects": [
+    "A tracked file reaches the fingerprint only through git's status and diffs, so a change that git does not report leaves the four hashes the same: other line endings in a file that is modified already, with `core.autocrlf=true`; a change of the same size in text that a clean filter drops; or an edit to a file marked with `git update-index --assume-unchanged` (corrected in 0.6.2)."
+  ],
   "mechanisms": [
     {
       "mechanism": "A link in an untracked folder is left out whenever an ignore pattern matches it, also a negated pattern: one that starts with `!` and takes the path out of the ignored ones. Git does not ignore such a link, so the reviewer could change it. On Windows the link is a junction, which git reads as a folder: for one that leads to an empty folder git lists no file, this function is the only place that records it, and a change to it leaves the fingerprint the same. On other systems git lists a link as a file, and it is recorded whatever this function says.",

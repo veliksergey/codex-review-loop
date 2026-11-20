@@ -27,7 +27,9 @@ tag and the severity of a correct finding, and how the label is proved.
   corrected. Their labels name those as known defects: a finding on one is right, and it
   is counted apart from the labeled mechanisms and from the false alarms.
 - **Derived**: one defect put back into a file of the plugin as released in 0.6.1, so
-  that a single mechanism can be scored. The controls are that release unchanged.
+  that a single mechanism can be scored. The controls are that release unchanged. Its
+  fingerprint script holds one defect that 0.6.2 corrected, and the labels of the cases
+  made from that script name it as a known defect, as the labels of the old trees do.
 - **Written**: four pairs on the made-up notes service: a missing check of the owner,
   an acceptance criterion that is not met, a handoff that names a test which does not
   exist, and a route that the request did not ask for.
