@@ -182,10 +182,10 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
   identifier OpenAI does not document: if a Codex update renames it, reviews lose web
   search, and the reviewer says so in its summary.
 - Claude fingerprints the working tree before and after every review and stops if
-  anything git can see changed: the commit, file status, staged and unstaged diffs,
-  and the contents of untracked files, with links recorded by where they point and a
-  submodule or another repository inside yours by its own fingerprint. Files git
-  ignores are not fingerprinted.
+  it changed: the commit, file status, staged and unstaged diffs, and the bytes of
+  tracked and untracked files as they are on disk, with links recorded by where they
+  point and a submodule or another repository inside yours by its own fingerprint.
+  Files git ignores are not fingerprinted.
 - The loop never commits, pushes, or runs release scripts.
 - Review logs and task files live in `~/.claude/codex-reviews/<repo>/`, outside the
   repository, so they never become part of the next review. The folder records which

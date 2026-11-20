@@ -602,12 +602,14 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
 - **Codex may not run your tests.** Its read-only sandbox can block a test runner
   from starting child processes. Codex then checks test claims by reading the code;
   Claude's own test run is the proof that the suite passes.
-- **The fingerprint check covers git's view of the tree:** the commit, file status,
-  the unstaged diff, the staged diff, and the contents of untracked files as they are
-  on disk, with untracked links recorded by where they point rather than followed. A
-  submodule that is checked out, and an untracked folder that is a repository of its
-  own, are recorded by their own fingerprint. Diff tools and line-ending settings in
-  your git config do not affect it. It does not
+- **The fingerprint check covers the files git tracks or would add:** the commit,
+  file status, the unstaged diff, the staged diff, and the bytes of tracked and
+  untracked files as they are on disk, with links recorded by where they point rather
+  than followed. A submodule that is checked out, and an untracked folder that is a
+  repository of its own, are recorded by their own fingerprint. Diff tools,
+  line-ending settings, and clean filters in your git config do not affect it, and
+  neither does a file or a link that git was told to take as unchanged. It reads every
+  tracked file, so each fingerprint takes longer on a very large repository. It does not
   hash files git ignores, such as `.env` or build output. For those the guard is
   Codex's read-only sandbox, which limits the reviewer's commands, together with the
   other tools being off.

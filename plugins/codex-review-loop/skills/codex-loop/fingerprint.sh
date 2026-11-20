@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Prints four hashes of the working tree: the commit with the file status, the unstaged
-# diff, the staged diff, and the contents of untracked files (links by where they point,
-# a repository inside this one by its own four hashes). Exits non-zero if any step fails.
+# diff, the staged diff, and the files as they are on disk (tracked and untracked files
+# by their bytes, links by where they point, a repository inside this one by its own
+# four hashes). Exits non-zero if any step fails.
 set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
@@ -65,6 +66,46 @@ untracked_files() {
           record F "$f" "$mode" "$h" || exit 1
         fi
       done
+}
+
+# Tracked paths as they are on disk, a file by its bytes and a link by where it points:
+# git's status and diffs compare what git would store, and pass over a path marked as
+# unchanged. A path that holds neither is left out, and the list of names shows that.
+tracked_files() {
+  git -C "$root" ls-files -z \
+    | {
+        plain="" dir="" behind=""
+        while IFS= read -r -d '' f; do
+          # Nothing behind a link is read: a link in the place of a folder stands for the
+          # files below it. Each folder is checked once; paths arrive sorted.
+          case "$f" in */*) d="${f%/*}" ;; *) d="" ;; esac
+          if [ "$d" != "$dir" ]; then
+            dir="$d" behind="" p="$d"
+            while [ -n "$p" ]; do
+              if [ -L "$root/$p" ]; then behind=1; break; fi
+              case "$p" in */*) p="${p%/*}" ;; *) p="" ;; esac
+            done
+          fi
+          if [ -n "$behind" ]; then continue; fi
+          if [ -L "$root/$f" ]; then link_record "$f" || exit 1; continue; fi
+          if [ ! -f "$root/$f" ]; then continue; fi
+          case "$f" in
+            # hash-object reads one name on a line, and takes a quote at the start of a
+            # line for the start of a quoted name. Such a name is hashed by itself.
+            '"'* | *$'\n'* | *$'\r')
+              h="$(git -C "$root" hash-object --no-filters -- "$f")" || exit 1
+              record T "$f" "$h" || exit 1 ;;
+            *) plain+="$f"$'\n' ;;
+          esac
+        done
+        if [ -n "$plain" ]; then
+          # One git for all the files: the names, and the hashes in the order of the names.
+          names="$(printf '%s' "$plain" | git hash-object --stdin)" || exit 1
+          bytes="$(printf '%s' "$plain" | git -C "$root" hash-object --no-filters --stdin-paths \
+            | git hash-object --stdin)" || exit 1
+          record TS "$names" "$bytes" || exit 1
+        fi
+      }
 }
 
 # Submodules that are checked out. Git's status and diffs say that one is changed, and
@@ -184,6 +225,6 @@ status="$({ printf '%s\n' "$head" && git -C "$root" status --porcelain --untrack
 unstaged="$(git -C "$root" diff --no-ext-diff --no-textconv --binary --full-index | git hash-object --stdin)"
 staged="$(git -C "$root" diff --cached --no-ext-diff --no-textconv --binary --full-index | git hash-object --stdin)"
 # Paths are resolved from the root, so the cwd does not matter.
-untracked="$({ untracked_files && untracked_links && tracked_links && submodules; } | LC_ALL=C sort -u | git hash-object --stdin)"
+untracked="$({ untracked_files && untracked_links && tracked_links && tracked_files && submodules; } | LC_ALL=C sort -u | git hash-object --stdin)"
 
 printf '%s\n' "$status" "$unstaged" "$staged" "$untracked"

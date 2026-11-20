@@ -335,6 +335,137 @@ else
   fail "untracked file changed from LF to CRLF under core.autocrlf: untracked hash unchanged"
 fi
 
+# A tracked file is recorded by its bytes on disk as well: git's status and diffs compare
+# what git would store. With core.autocrlf, a file that is modified already keeps its
+# status line and its diff when only its line endings change.
+steady=yes
+{ new_repo "$tmp/eol-tracked" && g -C "$tmp/eol-tracked" config core.autocrlf true &&
+  printf 'one\ntwo\nthree\n' > "$tmp/eol-tracked/kept.txt"; } || abort "repository for the line endings of a tracked file"
+before="$(fp_in "$tmp/eol-tracked")"; [ "$before" = "$(fp_in "$tmp/eol-tracked")" ] || steady=no
+printf 'one\r\ntwo\r\nthree\r\n' > "$tmp/eol-tracked/kept.txt" || abort "CRLF tracked file"
+after="$(fp_in "$tmp/eol-tracked")"
+if four "$before" && four "$after" && [ "$before" != "$after" ]; then
+  pass "modified tracked file changed from LF to CRLF under core.autocrlf: hashes change"
+else
+  fail "modified tracked file changed from LF to CRLF under core.autocrlf: hashes unchanged"
+fi
+
+# A clean filter can drop part of a file. Git then calls a file clean whose dropped part
+# changed without a change of size.
+{ new_repo "$tmp/filter" && g -C "$tmp/filter" config filter.strip.clean "sed /^secret/d" &&
+  printf '*.cfg filter=strip\n' > "$tmp/filter/.gitattributes" &&
+  printf 'name=x\nsecret=aaaa\n' > "$tmp/filter/app.cfg" &&
+  g -C "$tmp/filter" add .gitattributes app.cfg && g -C "$tmp/filter" commit -q -m filtered; } ||
+  abort "repository with a clean filter"
+before="$(fp_in "$tmp/filter")"; [ "$before" = "$(fp_in "$tmp/filter")" ] || steady=no
+printf 'name=x\nsecret=bbbb\n' > "$tmp/filter/app.cfg" || abort "change in the text the filter drops"
+after="$(fp_in "$tmp/filter")"
+if [ -n "$(g -C "$tmp/filter" status --porcelain)" ]; then
+  skip "clean tracked file changed where a clean filter drops text: git on this system reports the change"
+elif four "$before" && four "$after" && [ "$before" != "$after" ]; then
+  pass "clean tracked file changed where a clean filter drops text: hashes change"
+else
+  fail "clean tracked file changed where a clean filter drops text: hashes unchanged"
+fi
+
+# A file that git is told to take as unchanged: git passes over an edit to it.
+{ new_repo "$tmp/assumed" && g -C "$tmp/assumed" update-index --assume-unchanged kept.txt; } ||
+  abort "repository with a file marked as unchanged"
+before="$(fp_in "$tmp/assumed")"; [ "$before" = "$(fp_in "$tmp/assumed")" ] || steady=no
+echo edited >> "$tmp/assumed/kept.txt" || abort "edit of the file marked as unchanged"
+after="$(fp_in "$tmp/assumed")"
+if four "$before" && four "$after" && [ "$before" != "$after" ]; then
+  pass "tracked file marked as unchanged and then edited: hashes change"
+else
+  fail "tracked file marked as unchanged and then edited: hashes unchanged"
+fi
+if [ "$steady" = yes ]; then
+  pass "trees that git converts or passes over, taken twice: same hashes"
+else
+  fail "trees that git converts or passes over, taken twice: hashes differ"
+fi
+
+# What the reading of tracked files must not stumble over. A file that is gone:
+{ new_repo "$tmp/gone" && rm "$tmp/gone/kept.txt"; } || abort "repository with a deleted file"
+out="$(fp_in "$tmp/gone")"; rc=$?
+if [ $rc -eq 0 ] && four "$out"; then
+  pass "tracked file deleted from disk: prints four hashes"
+else
+  fail "tracked file deleted from disk: exit $rc, output: $out"
+fi
+# A link, which is not followed: what it points to lies outside the repository.
+{ new_repo "$tmp/tlink" && echo one > "$tmp/tlink-target.txt"; } || abort "repository for a tracked link"
+if (cd "$tmp/tlink" && make_symlink ../tlink-target.txt lnk) &&
+  g -C "$tmp/tlink" add lnk && g -C "$tmp/tlink" commit -q -m link; then
+  before="$(fp_in "$tmp/tlink")"
+  echo two > "$tmp/tlink-target.txt" || abort "change behind the tracked link"
+  after="$(fp_in "$tmp/tlink")"
+  if four "$before" && [ "$before" = "$after" ]; then
+    pass "tracked link: the file it points to is not read"
+  else
+    fail "tracked link: the hashes follow the file it points to, or are not four"
+  fi
+  # Where it points is recorded: git passes over a link that is marked as unchanged.
+  { g -C "$tmp/tlink" update-index --assume-unchanged lnk && echo one > "$tmp/tlink-other.txt"; } ||
+    abort "tracked link marked as unchanged"
+  before="$(fp_in "$tmp/tlink")"
+  { rm -f "$tmp/tlink/lnk" && (cd "$tmp/tlink" && make_symlink ../tlink-other.txt lnk); } ||
+    abort "tracked link pointed elsewhere"
+  after="$(fp_in "$tmp/tlink")"
+  if four "$before" && four "$after" && [ "$before" != "$after" ]; then
+    pass "tracked link marked as unchanged and pointed elsewhere: hashes change"
+  else
+    fail "tracked link marked as unchanged and pointed elsewhere: hashes unchanged"
+  fi
+else
+  skip "tracked link: cannot create a symbolic link on this system"
+  skip "tracked link marked as unchanged and pointed elsewhere: cannot create a symbolic link on this system"
+fi
+# Nor is a file read through a link that replaces its folder. The file is marked as
+# unchanged, so that git on Windows, which reads through a junction, does not report the
+# edit by itself.
+{ new_repo "$tmp/behind" && mkdir "$tmp/behind/vendor" "$tmp/behind-target" &&
+  echo kept > "$tmp/behind/vendor/keep.txt" && echo kept > "$tmp/behind-target/keep.txt" &&
+  g -C "$tmp/behind" add vendor/keep.txt && g -C "$tmp/behind" commit -q -m vendor &&
+  g -C "$tmp/behind" update-index --assume-unchanged vendor/keep.txt &&
+  rm -r "$tmp/behind/vendor" && make_link "$tmp/behind/vendor" "$tmp/behind-target"; } ||
+  abort "repository with a link in the place of a tracked folder"
+before="$(fp_in "$tmp/behind")"
+echo edited > "$tmp/behind-target/keep.txt" || abort "edit behind the link over a tracked folder"
+after="$(fp_in "$tmp/behind")"
+if four "$before" && [ "$before" = "$after" ]; then
+  pass "tracked file behind a link in the place of its folder, edited: same hashes"
+else
+  fail "tracked file behind a link in the place of its folder, edited: hashes differ, or are not four"
+fi
+rm -f "$tmp/behind/vendor" || abort "remove the link over a tracked folder"
+# Names that cannot stand on a line of their own among the names of many files. Each
+# file is marked as unchanged, so that only the reading of its bytes can see an edit.
+case "$(uname -s)" in
+  MINGW* | MSYS* | CYGWIN*)
+    skip "tracked files with a quote, a line break, or a carriage return in the name: no such names on Windows" ;;
+  *)
+    new_repo "$tmp/odd" || abort "repository for unusual names"
+    odd=('"q.txt' 'new'$'\n''line.txt' 'cr.txt'$'\r')
+    for name in "${odd[@]}"; do
+      { echo one > "$tmp/odd/$name" && g -C "$tmp/odd" add -- "$name"; } || abort "file with an unusual name"
+    done
+    { g -C "$tmp/odd" commit -q -m names &&
+      g -C "$tmp/odd" update-index --assume-unchanged -- "${odd[@]}"; } || abort "unusual names marked as unchanged"
+    seen=yes
+    for name in "${odd[@]}"; do
+      before="$(fp_in "$tmp/odd")"
+      echo two > "$tmp/odd/$name" || abort "edit of a file with an unusual name"
+      after="$(fp_in "$tmp/odd")"
+      { four "$before" && four "$after" && [ "$before" != "$after" ]; } || seen=no
+    done
+    if [ "$seen" = yes ]; then
+      pass "tracked files with a quote, a line break, or a carriage return in the name: an edit of each changes the hashes"
+    else
+      fail "tracked files with a quote, a line break, or a carriage return in the name: an edit is missed, or no four hashes"
+    fi ;;
+esac
+
 # The commit under the tree is part of the fingerprint: a clean tree at another commit
 # has the same status, the same diffs, and the same untracked files.
 { new_repo "$tmp/commits" && echo two > "$tmp/commits/kept.txt" &&
@@ -367,6 +498,17 @@ if [ $rc -ne 0 ] && [ -z "$out" ]; then
   pass "a git that cannot name the commit: exits non-zero and prints no hash"
 else
   fail "a git that cannot name the commit: exit $rc, printed $(printf '%s' "$out" | grep -c .) line(s)"
+fi
+# The same for a git that fails where the bytes of the tracked files are read.
+mkdir -p "$tmp/bin-bytes" || abort "mkdir $tmp/bin-bytes"
+printf '#!/usr/bin/env bash\nfor a in "$@"; do [ "$a" = --stdin-paths ] && exit 42; done\nexec "%s" "$@"\n' \
+  "$real_git" > "$tmp/bin-bytes/git" || abort "git stand-in for the tracked files"
+chmod +x "$tmp/bin-bytes/git" || abort "chmod git stand-in for the tracked files"
+out="$(cd "$tmp/commits" && PATH="$tmp/bin-bytes:$PATH" bash "$fp" 2>/dev/null)"; rc=$?
+if [ $rc -ne 0 ] && [ -z "$out" ]; then
+  pass "a git that cannot read the tracked files: exits non-zero and prints no hash"
+else
+  fail "a git that cannot read the tracked files: exit $rc, printed $(printf '%s' "$out" | grep -c .) line(s)"
 fi
 
 # An untracked folder that is a repository of its own: git lists the folder and not its

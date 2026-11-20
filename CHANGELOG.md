@@ -5,6 +5,26 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.6.2 — 2026-11-20
+
+One fix to the fingerprint. A review of the released script found the defect; each form
+of it was reproduced before it was fixed, and each has a regression test.
+
+- The fingerprint missed a change of a tracked file that git does not report. Tracked
+  files reached it only through git's status and diffs, which compare what git would
+  store. With `core.autocrlf=true`, a file that was modified already could be rewritten
+  with other line endings; with a clean filter, text that the filter drops could change
+  without a change of size; and a file marked with `git update-index --assume-unchanged`
+  could be edited, or a link marked that way pointed elsewhere. In each case all four
+  hashes stayed the same. `fingerprint.sh` now also records every tracked file by its
+  bytes on disk, and every tracked link by where it points.
+
+The fingerprint now reads every tracked file, where it read only the untracked ones
+before, so it takes longer on a large tree. A tracked file that cannot be read stops
+the fingerprint, as an untracked one already did. A fingerprint taken with 0.6.2 differs
+from one taken with 0.6.1 for the same tree. That matters only inside one review round,
+where both fingerprints come from the same version.
+
 ## 0.6.1 — 2026-11-18
 
 Six fixes to two scripts of the loop. A review of the released scripts found the

@@ -265,7 +265,7 @@ Rules for the command:
 - Check that the reviewer changed nothing. Before the run, record the output of
   `bash "${CLAUDE_SKILL_DIR}/fingerprint.sh"`, run exactly as written: four hashes,
   of the commit with the file status, the unstaged diff, the staged diff, and the
-  contents of untracked files as they are on disk, with untracked links recorded by
+  bytes of tracked and of untracked files as they are on disk, with links recorded by
   where they point, and a submodule or another repository inside this one recorded by
   its own four hashes. The Codex
   command prints the second fingerprint at its end; edit nothing in the repository
