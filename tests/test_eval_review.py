@@ -63,6 +63,9 @@ exit "$(cat "$control/code")"
 RULE = "-" * 8
 # One command that ran, and one call of a tool outside the shell, as Codex logs them.
 RAN = "".join(line + "\n" for line in ("exec", '"sh" -c "git status" in /work/repo', " succeeded in 12ms:", ""))
+# One command that ran and failed, as where the sandbox lets it read nothing.
+FAILED = "".join(line + "\n" for line in ("exec", '"sh" -c "cat app.py" in /work/repo', " exited 1 in 12ms:",
+                                          "The folder cannot be read."))
 TOOL = "".join(line + "\n" for line in ("mcp: files/read started", "mcp: files/read (completed)"))
 SEARCH = TOOL.replace("files/read", "codex_apps/search_service.web_run")
 # A review of the case w-broken: its mechanism, a false alarm, and a point of style.
@@ -92,6 +95,15 @@ def header(sandbox="read-only"):
 def load(path):
     with open(path, encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def windows_name(path, function):
+    """A path as a function of Windows names it, GetShortPathNameW or GetLongPathNameW;
+    None where it gives no name."""
+    import ctypes
+    buffer = ctypes.create_unicode_buffer(32768)
+    size = getattr(ctypes.windll.kernel32, function)(path, buffer, len(buffer))
+    return buffer.value if 0 < size < len(buffer) else None
 
 
 class Small(unittest.TestCase):
@@ -313,6 +325,58 @@ class RunTest(Small):
         self.assertEqual(self.calls(), [])
         self.assertFalse(os.path.exists(scratch))
 
+    def test_on_windows_a_fixture_is_built_below_the_long_name_of_the_folder_for_temporary_files(self):
+        if os.name != "nt":
+            self.skipTest("a short name in a path: only Windows gives one")
+        long = os.path.join(self.folder, "a folder with a long name")
+        os.makedirs(long)
+        short = windows_name(long, "GetShortPathNameW")
+        if not short or os.path.basename(short).lower() == os.path.basename(long).lower():
+            self.skipTest("a short name in a path: this volume gives a folder none")
+        built, real = [], eval_corpus.build
+
+        def noting(corpus, repository, cases, name, folder):
+            built.append(os.path.dirname(folder))
+            return real(corpus, repository, cases, name, folder)
+
+        # The system hands the folder for temporary files over under its short name.
+        with unittest.mock.patch.object(eval_review.tempfile, "tempdir", short), \
+                unittest.mock.patch.object(eval_corpus, "build", noting):
+            for more in ([], ["--dry-run"]):
+                code, out, err = self.command("run", "w-broken", *more)
+                self.assertEqual(code, 0, err)
+        self.assertEqual(len(built), 2)
+        for folder in built:
+            # The same folder, and no part of its path is a short name.
+            self.assertTrue(os.path.samefile(folder, short))
+            self.assertEqual(os.path.normcase(windows_name(folder, "GetLongPathNameW")), os.path.normcase(folder))
+        # And the review was started there, as bash names the folder.
+        self.assertIn("/a folder with a long name/review-", eval_review.read(os.path.join(self.control, "folder")))
+
+    def test_a_review_whose_every_command_failed_is_not_usable(self):
+        # Two commands ran, and neither showed the reviewer anything.
+        self.codex(tail=FAILED + FAILED)
+        code, out, err = self.command("run", "w-broken")
+        self.assertEqual(code, 1, err)
+        folder = self.left(out)
+        facts = eval_review.read(os.path.join(folder, "facts.txt")).split("\n")
+        for line in ("shell_started=2", "shell_ran=2", "shell_start_failed=0", "shell_usable=yes"):
+            self.assertIn(line, facts)
+        record = load(os.path.join(folder, "record.json"))
+        self.assertIs(record["usable"], False)
+        self.assertEqual(record["unusable"], [
+            "no command of the reviewer ended with exit code 0, of 2 that ran, so it may have read nothing"])
+        code, out, err = self.command("judge")
+        self.assertIn("0 judgment(s) written, 0 to complete", out)
+        code, out, err = self.command("report")
+        self.assertIn("Reviews: 1. Scored: 0. Left out: 1.\n  not usable: 1\n", out)
+        # One command that ended well is enough, whatever failed beside it.
+        self.codex(tail=FAILED + RAN)
+        code, out, err = self.command("run", "w-broken")
+        self.assertEqual(code, 0, err)
+        record = load(os.path.join(self.left(out), "record.json"))
+        self.assertEqual((record["usable"], record["unusable"]), (True, []))
+
     def test_no_review_starts_when_the_tools_of_the_reviewer_cannot_be_limited(self):
         self.codex(servers=False)
         code, out, err = self.command("run", "w-broken")
@@ -493,8 +557,8 @@ class RunTest(Small):
             "the log does not show beyond doubt that a sandboxed command ran: 1 started, 1 ran, 1 failed to start"])
 
     def test_each_reason_alone_makes_a_review_unusable(self):
-        good = {"code": 0, "review": "Fine.", "facts": FACTS, "trouble": "", "before": HASHES, "after": HASHES,
-                "leaked": False}
+        good = {"code": 0, "review": "Fine.", "facts": FACTS, "trouble": "", "passed": 1, "before": HASHES,
+                "after": HASHES, "leaked": False}
         self.assertEqual(eval_review.reasons(**good), [])
         other = HASHES.replace("e69d", "0000", 1)
         for change, part in (
@@ -505,6 +569,7 @@ class RunTest(Small):
                  "beyond doubt that a sandboxed command ran: 3 started, 3 ran, 1 failed to start"),
                 ({"facts": FACTS.replace("shell_ran=3", "shell_ran=4")},
                  "beyond doubt that a sandboxed command ran: 3 started, 4 ran, 0 failed to start"),
+                ({"passed": 0}, "no command of the reviewer ended with exit code 0, of 3 that ran"),
                 ({"facts": FACTS.replace("other_tool_calls=0", "other_tool_calls=1") + "\ntool=files/read calls=1 lines=7"},
                  "a tool that should be off was called: tool=files/read calls=1 lines=7"),
                 ({"facts": FACTS.replace("sandbox=read-only", "sandbox=workspace-write")}, "not read-only"),

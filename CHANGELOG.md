@@ -274,6 +274,14 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-20: two corrections to `tests/eval_review.py`, which runs a review on a case
+  of the evaluation corpus, with no change to the plugin. On Windows it now builds the
+  fixture below the long name of the folder for temporary files. The system can hand
+  that folder over with a short name in its path, and Codex's sandbox was seen to deny a
+  reviewer's commands that named the fixture so. And a review in which commands ran and
+  not one of them ended with exit code 0 is now marked as not usable: it was counted as
+  a review, although the reviewer may have read nothing. Reviews that a results folder
+  holds already are not marked again.
 - 2026-11-20: two corrections to the evaluation corpus, with no change to the plugin.
   The labels of the eleven cases whose fixture holds a fingerprint check older than 0.6.2
   now name, as a known defect, the one that 0.6.2 corrected: the seven cases made from

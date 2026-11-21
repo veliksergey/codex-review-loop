@@ -70,6 +70,8 @@ WEB = ("off", "cached", "live")
 # chance match in a log.
 TELLTALE = 30
 KEYED = re.compile(r'^\{?"([A-Za-z_]+)": ')
+# How Codex's log ends a command that ended with exit code 0, as round-facts.sh reads it.
+SUCCEEDED = re.compile(r"^ succeeded in [0-9.]+[a-z]+:$")
 # What a person states a finding to be.
 IS = ("mechanism", "known defect", "other defect", "false alarm")
 NAMED = {"mechanism": "a labeled mechanism", "known defect": "a known defect", "other defect": "another defect",
@@ -250,9 +252,26 @@ def names(log, name, folders, lines=()):
     return any(line in whole for line in lines)
 
 
-def reasons(code, review, facts, trouble, before, after, leaked):
+def long_named(folder):
+    """A folder by its long name on Windows, which can hand a folder over with a short
+    name in its path, such as PROGRA~1: Codex's sandbox was seen to deny a command that
+    names a path so. On any other system the folder as it is named."""
+    return os.path.realpath(folder) if os.name == "nt" else folder
+
+
+def succeeded(log):
+    """How many commands in the log of a review ended with exit code 0. They are counted
+    where round-facts.sh counts the commands that ran: after the prompt the log echoes."""
+    lines = [line.rstrip("\r") for line in log.split("\n")]
+    if "</grounding_rules>" in lines:
+        lines = lines[lines.index("</grounding_rules>") + 1:]
+    return sum(1 for line in lines if SUCCEEDED.match(line))
+
+
+def reasons(code, review, facts, trouble, passed, before, after, leaked):
     """Why a review cannot be scored, each reason as a sentence; empty when it can.
-    facts is what round-facts.sh printed, or None with what went wrong in trouble."""
+    facts is what round-facts.sh printed, or None with what went wrong in trouble.
+    passed is how many commands of the log ended with exit code 0."""
     why = []
     if code != 0:
         why.append(f"Codex ended with exit code {code}")
@@ -266,11 +285,17 @@ def reasons(code, review, facts, trouble, before, after, leaked):
         started, ran, failed = (value.get(key) for key in ("shell_started", "shell_ran", "shell_start_failed"))
         if value.get("shell_usable") != "yes":
             why.append("no sandboxed command ran")
-        elif failed != "0" or started != ran:
-            # A line inside the text of a command can have the shape of a command that
-            # ran. Only a log in which every command that started also ran leaves no doubt.
-            why.append("the log does not show beyond doubt that a sandboxed command ran: "
-                       f"{started} started, {ran} ran, {failed} failed to start")
+        else:
+            if failed != "0" or started != ran:
+                # A line inside the text of a command can have the shape of a command that
+                # ran. Only a log in which every command that started also ran leaves no doubt.
+                why.append("the log does not show beyond doubt that a sandboxed command ran: "
+                           f"{started} started, {ran} ran, {failed} failed to start")
+            if not passed:
+                # Commands that all failed may have shown nothing, as where the sandbox
+                # denies the folder of the fixture.
+                why.append(f"no command of the reviewer ended with exit code 0, of {ran} that ran, "
+                           "so it may have read nothing")
         if value.get("other_tool_calls") != "0":
             tools = [line for line in lines if line.startswith("tool=") and not line.startswith("tool=" + loop_stats.WEB)]
             why.append("a tool that should be off was called: " + "; ".join(tools))
@@ -357,7 +382,7 @@ def run(corpus, repository, results, name, dry_run, web="off"):
               "commit": text(head.stdout) if head.returncode == 0 and text(head.stdout) else "unknown",
               "started": now.isoformat(timespec="seconds"), "dry_run": dry_run, "web": web}
     # The fixture is built where nothing names the case, and is deleted after the review.
-    holder = tempfile.mkdtemp(prefix="review-")
+    holder = tempfile.mkdtemp(prefix="review-", dir=long_named(tempfile.gettempdir()))
     out, spent, kept = os.path.join(holder, "out"), False, False
     try:
         work, task = eval_corpus.build(corpus, repository, cases, name, holder)
@@ -387,9 +412,10 @@ def run(corpus, repository, results, name, dry_run, web="off"):
             facts = text(done.stdout) if done.returncode == 0 else None
             if facts is not None:
                 write(os.path.join(out, "facts.txt"), facts + "\n")
-            leaked = names(read(os.path.join(out, LOG)), name, (corpus, results) + places, telltales(corpus, name))
+            log = read(os.path.join(out, LOG))
+            leaked = names(log, name, (corpus, results) + places, telltales(corpus, name))
             why = reasons(code, read(os.path.join(out, REVIEW)), facts, text(done.stderr) or "round-facts.sh failed",
-                          before, after, leaked)
+                          succeeded(log), before, after, leaked)
             record["fingerprint"]["after"] = after
             record.update(codex_exit=code, usable=not why, unusable=why)
         write(os.path.join(out, "record.json"), json.dumps(record, indent=2) + "\n")

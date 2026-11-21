@@ -94,7 +94,10 @@ one, and the output of `instruction-changes.sh`. It takes the flags from `tool-f
 and stops when that script fails. It starts `codex exec review` in the fixture with the
 read-only sandbox and those flags, takes the fingerprint of the fixture before and
 after, and reads the log with `round-facts.sh`. Nothing that is handed to Codex names
-the case.
+the case. On Windows the fixture is built below the long name of the folder for
+temporary files: the system can hand that folder over with a short name in its path,
+such as `PROGRA~1`, and Codex's sandbox was seen to deny a reviewer's commands that
+named the fixture so.
 
 One thing differs from the loop's default: a review of a case runs **without web
 search**, with the flags of `tool-flags.sh off`, which is what the loop's `--web off`
@@ -119,9 +122,10 @@ leads into this repository.
 
 A review is marked as not usable in its record, with the reasons, and is never scored,
 when Codex ended with an exit code other than 0, the review is empty, no sandboxed
-command ran, a tool that should be off was called, the sandbox was not read-only, the
-reviewer searched the web, the fixture changed during the review, or the log shows that
-the reviewer may have read a label. That last one is there because the sandbox stops
+command ran, no command that ran ended with exit code 0, a tool that should be off was
+called, the sandbox was not read-only, the reviewer searched the web, the fixture
+changed during the review, or the log shows that the reviewer may have read a label.
+That last one is there because the sandbox stops
 the reviewer from writing, not from reading, and a reviewer that could have read a label
 proves nothing. The log holds every command the reviewer ran and what each printed, and
 it is searched for the name of the case, for the path of the corpus, of the results
@@ -137,6 +141,13 @@ having run only in a log where every command that started also ran and none fail
 start: a line inside the text of a command can have the shape of a command that ran. One
 doubt stays: a reviewer that ran no command at all and wrote both lines of a command in
 its own message would be counted as having run one.
+
+A review in which commands ran and not one of them ended with exit code 0 is left out
+as well: the reviewer may have read nothing, as where the sandbox denies the folder of
+the fixture. This check is coarse in both directions. A command can fail and still print
+what it read, so a review that read enough can be left out. And a line with the shape
+of a command that succeeded counts as one, also where it stands in the text of a command
+or in what a command printed.
 
 `judge` writes `judgment.json` beside each review that can be scored: the findings of
 the review with label, tag, title, and place, the mechanisms of the label, and for each
