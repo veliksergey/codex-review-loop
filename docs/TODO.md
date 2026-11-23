@@ -31,14 +31,16 @@ Each item is described here so that it can be read without the plan.
   `codex debug prompt-input`, which listed all three with every MCP server off. With a
   model catalog edited to drop code mode, it listed them only while the server of the
   search connector was on. A setting turns code mode off only for a model that
-  declares no tool mode, which in that catalog is `gpt-5.5` alone; with such a model
-  and `--web off` the three are gone and the shell stays, as the edited catalog showed,
-  but a review with web search keeps them. The setting that hides them in code mode,
-  `features.code_mode.excluded_tool_namespaces = ["functions"]`, also hides
-  `exec_command`, through which the reviewer runs its shell commands, as the same
-  command showed. Without `--allow-tools`, the loop goes on
-  stopping a review whose log records a call of one, and 0.6.3 says so. What is still
-  open is under "Smaller points".
+  declares no tool mode, which in that catalog is `gpt-5.5` alone. With such a model,
+  the feature `code_mode_only` off, as it is by default, and no MCP server on, as with
+  `--web off`, the three are gone and the shell stays, as the edited catalog showed;
+  while an MCP server is on, such as the search connector's server in a review with web
+  search, they stay. For a model that runs in code mode only, the setting
+  `features.code_mode.excluded_tool_namespaces = ["functions"]` hides them, and with
+  them `exec_command`, through which the reviewer runs its shell commands, as the same
+  command showed. Without `--allow-tools`, the loop goes on stopping a review whose log
+  records a call of one, and 0.6.3 says so. What is still open is under "Smaller
+  points".
 - [ ] **C2: a second look at the implementer's overrides.** Before a rejection, or a
   move from must-fix to P3, is recorded, a read-only subagent with a fresh context
   checks the finding against the code. For a rejected P0 or P1 the reviewer also gets

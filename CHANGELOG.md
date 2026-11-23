@@ -12,15 +12,16 @@ Wording only; nothing the loop runs changed.
 - The skill, the header of `tool-flags.sh`, and the plugin's README said that a review
   has its sandboxed shell and web search and nothing else, or that the loop checks that
   no other tool is on. Codex also gives the reviewer its own tools, and three of them
-  list and read the resources of MCP servers. Codex offers those three whenever an MCP
-  server is on, and always with a model that runs its tools in code mode only. No
-  setting that the loop can use removes them: checked on 2026-11-23 against the source
-  of Codex 0.171.0, its pull request 50546, and its configuration reference. The three
-  files now say so, and that without `--allow-tools` a call of one of those tools that
-  Codex's log records stops the review, as the loop already did. The skill's guardrail
-  also says that web search is the one connector the loop asks Codex for, except with
-  `--web off`, as the repository's rules do, and the skill and the README say what the
-  check before a review looks at, and what it does not.
+  list and read the resources of MCP servers. Codex registers those three whenever an
+  MCP server is on, and always with a model that runs its tools in code mode only, and
+  offers them unless a setting hides them. No setting that the loop can use removes
+  them: checked on 2026-11-23 against the source of Codex 0.171.0, its pull request
+  50546, and its configuration reference. The three files now say so, and that without
+  `--allow-tools` a call of one of those tools that Codex's log records stops the
+  review, as the loop already did. The skill's guardrail also says that web search is
+  the one connector the loop asks Codex for, except with `--web off`, as the
+  repository's rules do, and the skill and the README say what the check before a
+  review looks at, and what it does not.
 
 ## 0.6.2 — 2026-11-20
 

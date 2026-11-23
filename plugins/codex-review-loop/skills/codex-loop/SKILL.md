@@ -229,13 +229,15 @@ The script prints one line and that line is `<tool flags>`: the flags that turn 
 Codex's plugins, its connectors other than web search, and every configured MCP server.
 Before it prints, it asks Codex which MCP servers are enabled and which tools a session
 with those flags would be offered. It prints nothing if an MCP server is still enabled,
-or if a tool of a connector, a plugin, or an MCP server is offered besides web search,
-for example by a connector that a configuration file turns on by name. A connector that
-offers no tool is not seen, and Codex's own tools are not part of the check: they stay
-on. Run it again before each round: a fix, or the user, can change a Codex
-configuration file between rounds. If it exits non-zero, stop: the reviewer's tools
-cannot be limited. Show the user its message and say that `--allow-tools` runs the
-review with their own tools instead.
+or if a tool whose name marks it as one of a connector, a plugin, or an MCP server,
+`mcp__...`, is offered besides web search, for example by a connector that a
+configuration file turns on by name. A connector that offers no tool is not seen, nor
+a tool that Codex names without that prefix, as it can for some servers (source of
+Codex 0.171.0, `codex-rs/codex-mcp/src/tools.rs`); Codex's own tools are not part of
+the check: they stay on. Run it again before each round: a fix, or the user, can
+change a Codex configuration file between rounds. If it exits non-zero, stop: the
+reviewer's tools cannot be limited. Show the user its message and say that
+`--allow-tools` runs the review with their own tools instead.
 
 Web search reaches the reviewer as a Codex connector, which is why the default keeps
 that one connector on. Observed 2026-11-13: with the apps feature disabled the reviewer

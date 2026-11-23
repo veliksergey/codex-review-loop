@@ -625,43 +625,46 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
   before deciding that a tool that should be off was not called.
 - **Three of Codex's own tools reach MCP servers, and no setting the loop can use turns
   them off.** `list_mcp_resources`, `list_mcp_resource_templates`, and
-  `read_mcp_resource` list and read the resources of MCP servers. Codex offers them
-  whenever an MCP server is on, and always with a model that runs its tools in code
-  mode only, which in the model catalog of Codex 0.171.0 is every model but one; a
-  setting turns code mode off only for a model that declares no tool mode. The setting
-  that hides them in code mode,
-  `features.code_mode.excluded_tool_namespaces = ["functions"]`, also hides
-  `exec_command`, through which the reviewer runs its shell commands (observed on
-  2026-11-23), and the loop stops a review in which no shell command ran. This was
+  `read_mcp_resource` list and read the resources of MCP servers. Codex registers them
+  whenever an MCP server is on, and always with a model that runs its tools in code mode
+  only, which in the model catalog of Codex 0.171.0 is every model but one, and offers
+  them to the reviewer unless a setting hides them; a setting turns code mode off only
+  for a model that declares no tool mode. For a model that runs in code mode only, the
+  setting `features.code_mode.excluded_tool_namespaces = ["functions"]` hides them, and
+  with them `exec_command`, through which the reviewer runs its shell commands (observed
+  on 2026-11-23), and the loop stops a review in which no shell command ran. This was
   checked on 2026-11-23 against Codex's source, its pull request 50546, and its
   configuration reference. With `--web off` no MCP server is on, and a call reaches
   nothing. A review with web search asks Codex to turn the search connector on, and
   while its server, `codex_apps`, is on, the tools that list and read resources can
-  reach it, unless a Codex configuration sets `orchestrator.mcp.enabled` to false;
-  that setting is on by default. A list of resource templates does not reach it:
-  Codex answers that list for this server itself, with an empty list. What the server
-  offers as resources has not been checked. Without `--allow-tools`, the loop stops a
-  review whose log records a call of one of these tools, and shows a line that names
-  the tool and the server the call was for: `codex` when the call named none, as in
+  reach it, unless a Codex configuration sets `orchestrator.mcp.enabled` to false; that
+  setting is on by default. A list of resource templates does not reach it: Codex
+  answers that list for this server itself, with an empty list. What the server offers
+  as resources has not been checked. Without `--allow-tools`, the loop stops a review
+  whose log records a call of one of these tools, and shows a line that names the tool
+  and the server the call was for: `codex` when the call named none, as in
   `tool=codex/list_mcp_resources`. A call that Codex rejects before it runs, such as a
   read from a server that does not exist, leaves no such line and reaches no server.
-  Each of these facts is from the source of Codex 0.171.0, read on 2026-11-23, and so
-  is this one: the line alone does not show what a call reached, because a list that
-  names no server asks each server that is ready, names the servers that are on but
-  not ready as deferred, and leaves out a server that failed or listed nothing. Codex's
-  full session, which `codex resume <session-id>` opens, holds each call with its
-  server, its arguments, and its reply (observed on 2026-11-23), though Codex cuts a
-  long reply short before it keeps it. When calls of these tools alone stopped the
-  review, look at each there. A review with web search may reach `codex_apps`, and one
-  with `--web off` no server at all. If no call names a server outside that, and no
-  reply names one among its resources, its resource templates, or its deferred
-  servers, nothing points to a server that should have been off, though a reply
-  cannot prove that none was: start the loop again with the same arguments to run the
-  round again. If a call or a reply names such a server, that server was on although
-  the loop turned it off: report it, as the troubleshooting table says. A read, or a
-  list that names a server, goes to that server alone, so its arguments show where it
-  went even when its reply is cut short. A list that names no server and whose reply
-  is missing or cut short leaves the stop unexplained: report that too.
+  Each of these facts is from the source of Codex 0.171.0, read on 2026-11-23, and so is
+  this one: the line alone does not show what a call reached, because a list that names
+  no server asks each server that is ready, names the servers that are on but not ready
+  as deferred, and leaves out a server that failed or listed nothing. Codex's full
+  session, which `codex resume <session-id>` opens, holds each call with its server, its
+  arguments, and its reply (observed on 2026-11-23), though Codex cuts a long reply
+  short before it keeps it. The conversation shows only the first lines of a reply;
+  Ctrl+T opens the transcript, which shows each call and the reply as Codex kept it
+  (source of Codex 0.171.0). When calls of these tools alone stopped the review, look at
+  each in the transcript. A review with web search may reach `codex_apps`, and one with
+  `--web off` no server at all. If no call names a server outside that, and no reply
+  names one among its resources, its resource templates, or its deferred servers,
+  nothing points to a server that should have been off, though a reply cannot prove that
+  none was: start the loop again with the same arguments to run the round again. If a
+  call or a reply names such a server, that server was on although the loop turned it
+  off: report it, as the troubleshooting table says. A read, or a list that names a
+  server, is for that server alone, so its arguments show which server it was for even
+  when its reply is cut short, though not that the call reached it: Codex answers a list
+  of templates for `codex_apps` itself. A list that names no server and whose reply is
+  missing, or cut short in the transcript, leaves the stop unexplained: report that too.
 - **Severity labels vary between runs, and the reviewer avoids P0.** Observed on
   2026-11-13: in every seeded review that tried it, the reviewer rated a defect that
   deleted stored data, and one that let a user delete another user's data, P1, although
