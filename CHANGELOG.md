@@ -274,6 +274,9 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-23: `docs/TODO.md` lists the open work on this repository in the order
+  recommended: the items of the improvement plan that are not started, the experiments
+  still to run, and what a clone does not carry to another computer.
 - 2026-11-20: two corrections to `tests/eval_review.py`, which runs a review on a case
   of the evaluation corpus, with no change to the plugin. On Windows it now builds the
   fixture below the long name of the folder for temporary files. The system can hand
@@ -348,6 +351,10 @@ template changes. Update to get the fixed check.
   `tests/published-files.sh` looks for a home-folder path or an e-mail address in the
   files git would publish. `tests/fingerprint.test.sh` now reports a case it cannot run
   as skipped, not as passed.
+- 2026-11-12: `docs/IMPROVEMENT_PLAN.md` consolidates two earlier reports, which are
+  not kept in this repository, with further research into current practice and the
+  behavior of both tools, and sets out a prioritized improvement plan with the
+  maintainer's decisions.
 - 2026-10-05: `docs/manual-install/` explains how to review the plugin and install
   it without trusting GitHub: from your own clone, by copying the plugin folder, or
   by hand. Linked from the README.
