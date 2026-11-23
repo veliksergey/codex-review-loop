@@ -228,12 +228,14 @@ the run, exactly as written:
 The script prints one line and that line is `<tool flags>`: the flags that turn off
 Codex's plugins, its connectors other than web search, and every configured MCP server.
 Before it prints, it asks Codex which MCP servers are enabled and which tools a session
-with those flags would be offered, and it prints nothing if anything besides web search
-is still on, for example a connector that a configuration file turns on by name. Run it
-again before each round: a fix, or the user, can change a Codex configuration file
-between rounds. If it exits non-zero, stop: the reviewer's tools cannot be limited.
-Show the user its message and say that `--allow-tools` runs the review with their own
-tools instead.
+with those flags would be offered. It prints nothing if an MCP server is still enabled,
+or if a tool of a connector, a plugin, or an MCP server is offered besides web search,
+for example by a connector that a configuration file turns on by name. A connector that
+offers no tool is not seen, and Codex's own tools are not part of the check: they stay
+on. Run it again before each round: a fix, or the user, can change a Codex
+configuration file between rounds. If it exits non-zero, stop: the reviewer's tools
+cannot be limited. Show the user its message and say that `--allow-tools` runs the
+review with their own tools instead.
 
 Web search reaches the reviewer as a Codex connector, which is why the default keeps
 that one connector on. Observed 2026-11-13: with the apps feature disabled the reviewer
@@ -300,6 +302,14 @@ Stop the loop and report the review as failed, without triaging its output, when
   https://learn.chatgpt.com/docs/windows/windows-sandbox.
 - `other_tool_calls` is not 0 in a run without `--allow-tools`, and at least one of
   those calls is real. A tool that should be off was called. Show the `tool=` lines.
+  That includes the three tools of Codex's own for the resources of MCP servers,
+  `list_mcp_resources`, `list_mcp_resource_templates`, and `read_mcp_resource`: no
+  setting that the loop can use turns them off (Codex 0.171.0, checked 2026-11-23),
+  and a call of one that the log records stops the review all the same. Observed
+  2026-11-20: `round-facts.sh` printed such a call as `tool=codex/list_mcp_resources`.
+  A call that Codex rejects before it runs, such as a read from a server that does not
+  exist, leaves no such line and reaches no server (source of Codex 0.171.0, read
+  2026-11-23).
 - `web_search_calls` is not 0 in a run with `--web off`, and at least one of those
   calls is real.
 
@@ -474,9 +484,14 @@ Then, in this order:
 ## Guardrails
 
 - Codex reviews; it never edits. Only Claude edits.
-- The reviewer gets its sandboxed shell and web search, nothing else. Connectors,
-  plugins, and MCP servers stay off unless the user passed `--allow-tools` for this
-  run. Never drop a tool flag to make a review work.
+- The reviewer gets its sandboxed shell and the tools built into Codex. The loop also
+  asks Codex for web search, except with `--web off`; a review goes ahead without it
+  when Codex does not offer it. Connectors other than web search, plugins, and the MCP
+  servers in Codex's configuration stay off unless the user passed `--allow-tools` for
+  this run. Never drop a tool flag to make a review work. Three of Codex's own tools
+  list and read the resources of MCP servers, and no setting that the loop can use
+  turns them off; in a run without `--allow-tools`, a call of one that the log records
+  stops the review, as step 4 says.
 - Never weaken tests, types, validation, or lint rules to satisfy a finding.
 - Never paste `.env` values, tokens, or connection strings into a prompt, log, or
   report. The task file is sent to Codex in full: keep secrets out of it.

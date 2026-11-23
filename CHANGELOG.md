@@ -5,6 +5,23 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.6.3 — 2026-11-23
+
+Wording only; nothing the loop runs changed.
+
+- The skill, the header of `tool-flags.sh`, and the plugin's README said that a review
+  has its sandboxed shell and web search and nothing else, or that the loop checks that
+  no other tool is on. Codex also gives the reviewer its own tools, and three of them
+  list and read the resources of MCP servers. Codex offers those three whenever an MCP
+  server is on, and always with a model that runs its tools in code mode only. No
+  setting that the loop can use removes them: checked on 2026-11-23 against the source
+  of Codex 0.171.0, its pull request 50546, and its configuration reference. The three
+  files now say so, and that without `--allow-tools` a call of one of those tools that
+  Codex's log records stops the review, as the loop already did. The skill's guardrail
+  also says that web search is the one connector the loop asks Codex for, except with
+  `--web off`, as the repository's rules do, and the skill and the README say what the
+  check before a review looks at, and what it does not.
+
 ## 0.6.2 — 2026-11-20
 
 One fix to the fingerprint. A review of the released script found the defect; each form
@@ -274,6 +291,11 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-23: `docs/GUIDE.md` names, under "Known limits", the three tools of Codex's
+  own that reach MCP servers, which no setting the loop can use turns off, and says what
+  to do when a review stopped for one; its troubleshooting table points there.
+  `docs/TODO.md` records why no setting the loop can use removes them, and what is
+  still open about them.
 - 2026-11-23: `docs/TODO.md` lists the open work on this repository in the order
   recommended: the items of the improvement plan that are not started, the experiments
   still to run, and what a clone does not carry to another computer.

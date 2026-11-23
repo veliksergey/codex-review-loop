@@ -590,7 +590,7 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
 | `CreateProcessWithLogonW failed: 1385` in the log (Windows) | Windows policy denies the Codex sandbox accounts the logon they need. The review usually still completes, more slowly. See OpenAI's Windows sandbox page: https://learn.chatgpt.com/docs/windows/windows-sandbox |
 | The loop stops: no sandboxed shell command ran | Codex could not start its sandboxed shell, so the reviewer could not read your code through the sandbox, whatever it wrote. Run `codex update` and rerun. On Windows, see the Windows sandbox page above. `--allow-tools` does not get around this: the loop stops then too. |
 | The loop stops: the reviewer's tools cannot be limited | The message says which of three causes applies. A tool is still offered to the reviewer: some Codex configuration turns a connector on by name, or an MCP server stayed on, and the message names the tool; turn it off there. Or an MCP server cannot be turned off: `codex mcp list --json` failed, printed something the loop cannot read in full, or printed a server name with a character other than letters, digits, `_`, `-`, and `.`. Or Codex could not show which tools a session would have, or showed a list the loop cannot read or one without any tool: update Codex. `--allow-tools` runs the review with your own tools instead. |
-| The loop stops: a tool that should be off was called | A connector, plugin, or MCP tool appeared in Codex's log although the loop turned them off. A Codex update may have changed how they are disabled. Report it in the repository's issues with your Codex version. |
+| The loop stops: a tool that should be off was called | If only Codex's own three tools for the resources of MCP servers stopped the review, [Known limits](#15-known-limits) says how to check their calls in Codex's full session, and when to start the loop again. Web search stops a review only when it ran with `--web off`. If a web search did then, or any other tool stopped the review, a connector, plugin, or MCP tool appeared in Codex's log although the loop turned them off. A Codex update may have changed how they are disabled. Report it in the repository's issues with your Codex version. |
 | The loop stops: the log folder belongs to another repository | Two repositories whose folders have the same name would share one task file and one set of logs. Rename one of the folders. If you moved the repository, delete `repository-root.txt` in the log folder the message names, and rerun. Do the same when the message says that file is empty or cannot be read, after checking that no other repository uses the folder. |
 | The loop stops: the request and the criteria cannot be found in the task file | The task file needs a `## Request` heading and, below it, a `## Acceptance criteria` heading. A fenced block or an HTML comment that never closes hides every heading under it: close it, or quote the request line by line with `>`. |
 | The reviewer says it has no web search tool | You passed `--web off`, or a Codex update renamed the search connector. See [What the reviewer can use](#what-the-reviewer-can-use). |
@@ -623,6 +623,45 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
   what the reviewer's commands printed, so a printed line can look like a tool call.
   The loop lists the log line of every call it counted, and Claude reads each one
   before deciding that a tool that should be off was not called.
+- **Three of Codex's own tools reach MCP servers, and no setting the loop can use turns
+  them off.** `list_mcp_resources`, `list_mcp_resource_templates`, and
+  `read_mcp_resource` list and read the resources of MCP servers. Codex offers them
+  whenever an MCP server is on, and always with a model that runs its tools in code
+  mode only, which in the model catalog of Codex 0.171.0 is every model but one; a
+  setting turns code mode off only for a model that declares no tool mode. The setting
+  that hides them in code mode,
+  `features.code_mode.excluded_tool_namespaces = ["functions"]`, also hides
+  `exec_command`, through which the reviewer runs its shell commands (observed on
+  2026-11-23), and the loop stops a review in which no shell command ran. This was
+  checked on 2026-11-23 against Codex's source, its pull request 50546, and its
+  configuration reference. With `--web off` no MCP server is on, and a call reaches
+  nothing. A review with web search asks Codex to turn the search connector on, and
+  while its server, `codex_apps`, is on, the tools that list and read resources can
+  reach it, unless a Codex configuration sets `orchestrator.mcp.enabled` to false;
+  that setting is on by default. A list of resource templates does not reach it:
+  Codex answers that list for this server itself, with an empty list. What the server
+  offers as resources has not been checked. Without `--allow-tools`, the loop stops a
+  review whose log records a call of one of these tools, and shows a line that names
+  the tool and the server the call was for: `codex` when the call named none, as in
+  `tool=codex/list_mcp_resources`. A call that Codex rejects before it runs, such as a
+  read from a server that does not exist, leaves no such line and reaches no server.
+  Each of these facts is from the source of Codex 0.171.0, read on 2026-11-23, and so
+  is this one: the line alone does not show what a call reached, because a list that
+  names no server asks each server that is ready, names the servers that are on but
+  not ready as deferred, and leaves out a server that failed or listed nothing. Codex's
+  full session, which `codex resume <session-id>` opens, holds each call with its
+  server, its arguments, and its reply (observed on 2026-11-23), though Codex cuts a
+  long reply short before it keeps it. When calls of these tools alone stopped the
+  review, look at each there. A review with web search may reach `codex_apps`, and one
+  with `--web off` no server at all. If no call names a server outside that, and no
+  reply names one among its resources, its resource templates, or its deferred
+  servers, nothing points to a server that should have been off, though a reply
+  cannot prove that none was: start the loop again with the same arguments to run the
+  round again. If a call or a reply names such a server, that server was on although
+  the loop turned it off: report it, as the troubleshooting table says. A read, or a
+  list that names a server, goes to that server alone, so its arguments show where it
+  went even when its reply is cut short. A list that names no server and whose reply
+  is missing or cut short leaves the stop unexplained: report that too.
 - **Severity labels vary between runs, and the reviewer avoids P0.** Observed on
   2026-11-13: in every seeded review that tried it, the reviewer rated a defect that
   deleted stored data, and one that let a user delete another user's data, P1, although

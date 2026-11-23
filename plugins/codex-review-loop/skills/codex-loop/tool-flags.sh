@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# Prints, on one line, the Codex flags that limit a review to its sandboxed shell and
-# web search, after asking Codex whether those flags do what they should.
+# Prints, on one line, the Codex flags that turn off Codex's plugins, its connectors
+# other than web search, and every configured MCP server, after asking Codex whether
+# those flags do what they should. Codex's own tools stay on. No setting this script
+# could add turns off the three that list and read the resources of MCP servers (Codex
+# 0.171.0, checked 2026-11-23); without --allow-tools, a call of one that Codex's log
+# records stops the review.
 # Usage: tool-flags.sh [cached|live|off]   the web search mode; cached when left out.
 # The check uses Codex's own reading of every configuration layer: a connector that
 # any layer turns on by name, or an MCP server the flags leave on, makes this script

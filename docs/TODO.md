@@ -9,7 +9,7 @@ Each item is described here so that it can be read without the plan.
 
 ## Where things stand
 
-- The plugin is at 0.6.2. Releases A and B of the plan are done, except B5.
+- The plugin is at 0.6.3. Releases A and B of the plan are done, except B5.
 - The baseline is run and recorded: B6, with the experiments E1 and E2. Its results are
   private. They are kept in the loop's log folder, outside this repository, and no
   figure of them belongs in a file here.
@@ -17,12 +17,28 @@ Each item is described here so that it can be read without the plan.
 
 ## Next, in this order
 
-- [ ] **The tools built into Codex that list MCP resources.** In a review that was
+- [x] **The tools built into Codex that list MCP resources.** In a review that was
   observed, the reviewer called tools of Codex's own that list the resources of MCP
   servers, although every server was off. The loop stops such a review, because a tool
-  that should be off was called. Find out from Codex's documentation whether a setting
-  removes those tools, and if one does, add it to `tool-flags.sh` with a test. Research
-  first; it spends no review.
+  that should be off was called. Found on 2026-11-23, for Codex 0.171.0: no setting
+  that the loop can use removes them. Codex adds `list_mcp_resources`,
+  `list_mcp_resource_templates`, and `read_mcp_resource` when an MCP server is on, and
+  always when the model runs its tools in code mode only, which in the model catalog
+  of Codex 0.171.0 is every model but one. The sources:
+  `codex-rs/core/src/tools/spec_plan.rs`, lines 1329 to 1332 at the tag
+  `rust-v0.171.0`; Codex's pull request 50546 of 2026-10-03, which made it so on
+  purpose; the configuration reference, which names no key for them; and
+  `codex debug prompt-input`, which listed all three with every MCP server off. With a
+  model catalog edited to drop code mode, it listed them only while the server of the
+  search connector was on. A setting turns code mode off only for a model that
+  declares no tool mode, which in that catalog is `gpt-5.5` alone; with such a model
+  and `--web off` the three are gone and the shell stays, as the edited catalog showed,
+  but a review with web search keeps them. The setting that hides them in code mode,
+  `features.code_mode.excluded_tool_namespaces = ["functions"]`, also hides
+  `exec_command`, through which the reviewer runs its shell commands, as the same
+  command showed. Without `--allow-tools`, the loop goes on
+  stopping a review whose log records a call of one, and 0.6.3 says so. What is still
+  open is under "Smaller points".
 - [ ] **C2: a second look at the implementer's overrides.** Before a rejection, or a
   move from must-fix to P3, is recorded, a read-only subagent with a fresh context
   checks the finding against the code. For a rejected P0 or P1 the reviewer also gets
@@ -90,6 +106,23 @@ case is run, judged, and reported.
 
 ## Smaller points
 
+- [ ] **What the search connector's server offers as resources.** No single setting
+  removes Codex's three tools for the resources of MCP servers for every model and web
+  search mode the loop runs with, and without `--allow-tools` the loop stops a review
+  whose log records a call of one.
+  With `--web off` no MCP server is on, and such a call reaches nothing, so the loop
+  could let it through there. A review with web search asks Codex to turn the search
+  connector on, and while its server is on these tools can reach it; what it offers
+  was never checked.
+  One Codex request could confirm that the server is on, ask it by name for its
+  resources, and record what it advertises. It needs `orchestrator.mcp.enabled` left
+  on, as it is by default: set to false, that setting keeps these tools from the
+  server, and the request would show only the refusal. Its resource templates cannot
+  be learned that way: Codex 0.171.0 answers a list of them for this server itself,
+  with an empty list, without asking the server (`codex-rs/codex-mcp/src/binding.rs`,
+  `list_resource_templates`). An empty list of resources would still not show that
+  `read_mcp_resource` reaches nothing there: a server's tools can return links to
+  resources that its lists leave out. A change to the loop is a release.
 - [ ] **The severity of security defects.** Decide whether the scale in
   `review-prompt.md` needs firmer wording for them. The evidence is in the private
   record. A change to the prompt is a release, and is measured against the baseline

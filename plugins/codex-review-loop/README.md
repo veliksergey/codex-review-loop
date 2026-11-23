@@ -35,10 +35,15 @@ https://github.com/veliksergey/codex-review-loop
 ## What the plugin runs, sends, and writes
 
 - **Runs** the Codex CLI (`codex exec review`) with a read-only sandbox forced on
-  every run and with Codex's connectors, plugins, and MCP servers turned off;
-  `codex mcp list` and `codex debug prompt-input` before each review, to turn the
-  MCP servers off and to check that no other tool is still on; and git commands that
-  read the working tree. It installs nothing.
+  every run and, unless you pass `--allow-tools`, with Codex's connectors other than
+  web search, its plugins, and the MCP servers in its configuration turned off; before
+  each such review, `codex mcp list`, to find the MCP servers to turn off and to check
+  that none is still enabled, and `codex debug prompt-input`, to check that no tool of
+  a connector, a plugin, or an MCP server is offered besides web search; and git
+  commands that read the working tree. It installs nothing. Codex's own tools stay on.
+  Three of them list and read the resources of MCP servers, and no Codex setting that
+  the loop can use turns them off (Codex 0.171.0, checked on 2026-11-23); without
+  `--allow-tools`, the loop stops a review whose log records a call of one.
 - **Sends** the task file, and whatever the reviewer reads, to OpenAI through your
   own ChatGPT account, because that is where Codex runs. The sandbox blocks writing,
   not reading, so the reviewer can read files outside the change. It can also search
