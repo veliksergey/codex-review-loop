@@ -1,6 +1,6 @@
 # To do
 
-Open work on this repository as of 2026-11-23, in the order recommended. None of it is
+Open work on this repository as of 2026-11-24, in the order recommended. None of it is
 started. Each item starts on the maintainer's word, and each experiment spends reviews
 of the maintainer's Codex allowance.
 
@@ -157,6 +157,22 @@ case is run, judged, and reported.
   passes the other was never tried. Try it, and if the read-only sandbox does not hold
   then, stop the review before it starts, with a message. It is near C5 and comes from
   the same two reports.
+- [ ] **What the READMEs say about an older Claude Code.** Both READMEs say that the
+  second look needs Claude Code 2.1.271 or later, and that with an older one the loop
+  says the second look did not run. The loop goes by the agent's own first line,
+  `Instruction files:`, and does not check the version: with an older Claude Code and
+  no `CLAUDE.md` or rules files to load, the agent really starts without them, and its
+  second look counts. Say instead that 2.1.271 lets the agent start without those
+  files, and that a second look counts as not run when the agent reports that
+  instruction files reached it. Found in the reviews of 0.7.0, as P3. The plugin's
+  README is under `plugins/`, so the change is a patch release.
+- [ ] **Hashes for SHA-1 in `tests/round-facts.test.sh`.** Two of its cases expect the
+  `prompt_hash` of a fixed prompt written out as a SHA-1 hash, so they fail in a
+  repository that stores its objects with SHA-256. `tests/rebuttal-facts.test.sh`
+  computes the hash it expects with `git hash-object` instead, and these two cases can
+  do the same. The file is the proof of the corpus case `rf-echoed-prompt`, and the
+  corpus hashes each proof whole: any change makes that case read as not agreed, so the
+  maintainer agrees with it again afterwards. Tests only, no release.
 
 ## On another computer
 

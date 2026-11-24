@@ -356,6 +356,9 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-24: `docs/TODO.md` lists two small follow-ups of 0.7.0 under "Smaller
+  points": what both READMEs say about a Claude Code older than 2.1.271, and two cases
+  of `tests/round-facts.test.sh` that expect hashes written out for SHA-1.
 - 2026-11-23: `docs/GUIDE.md` names, under "Known limits", the three tools of Codex's
   own that reach MCP servers, which no setting the loop can use turns off, and says what
   to do when a review stopped for one; its troubleshooting table points there.
