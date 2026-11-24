@@ -51,7 +51,7 @@ claude plugin list
 
 Expect an entry `codex-review-loop@skills-dir` with `Status: ✔ loaded` and the
 version you copied. `claude plugin details codex-review-loop@skills-dir` lists
-`Skills (2)  codex-loop, setup` and `Hooks (0)`.
+`Skills (2)  codex-loop, setup`, `Agents (1)  finding-checker`, and `Hooks (0)`.
 
 ## Take a new version
 

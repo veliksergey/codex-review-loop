@@ -44,7 +44,10 @@ The loop, in order:
    Codex checks the code against your request and reports findings labeled P0 to P3.
 4. Claude prints the findings verbatim, verifies each one in the code, fixes valid
    P0-P2 findings with a regression test, lists P3 items for you, and records each
-   rejected finding with its evidence.
+   rejected finding with its evidence. Before it rejects a finding, or moves one
+   below the must-fix line, a read-only agent checks the finding in a fresh context,
+   and a rejected P0 or P1 goes back to Codex once. A finding that either
+   contradicts, and that Claude still holds, is left to you.
 5. Claude re-runs the checks and the review, up to three rounds, and reports.
 
 ### What leaves your computer
@@ -53,7 +56,8 @@ Codex runs on your ChatGPT account, so every review sends data to OpenAI: the wh
 task file, and whatever the reviewer reads while it works. Read-only means the reviewer
 cannot change your files. It does not mean your files stay on your computer: the
 sandbox blocks writing, not reading, so the reviewer can read files outside the change
-and outside the repository, and what it reads is sent as well. Its web searches, and
+and outside the repository, and what it reads is sent as well. A rebuttal also sends
+the findings Claude rejected and Claude's evidence against them. Its web searches, and
 the public pages it opens, are requests it composes itself. Claude starts the loop on
 its own after each implementation task. Say "skip review" for code that must not be
 sent, and keep secrets out of your requests. The plugin's authors receive nothing.
@@ -62,7 +66,7 @@ Where each piece lives after setup:
 
 | Piece | Location | Installed by |
 |---|---|---|
-| Review command, review prompt, task template | The plugin, in Claude Code's plugin cache | `/plugin install` |
+| Review command, review prompt, task template, and the agent of the second look | The plugin, in Claude Code's plugin cache | `/plugin install` |
 | Claude's rules, including when to run the loop | `~/.claude/CLAUDE.md`, block `claude-rules` | `/codex-review-loop:setup` |
 | Shared engineering rules for both tools (optional) | `~/.codex/AGENTS.md`, block `shared-invariants`, imported into `CLAUDE.md` by block `shared-import` | `/codex-review-loop:setup` |
 | Codex's reviewer rules | `~/.codex/AGENTS.md`, block `codex-reviewer` | `/codex-review-loop:setup` |
@@ -257,9 +261,10 @@ P0-P2 findings and runs another round.
 4. Watch the rounds. Requirement findings start with `(criterion N)`,
    `(beyond request)`, or `(handoff)`.
 5. Read the final report. It starts with one verdict from the table below, then
-   lists the findings Claude rejected or moved below the must-fix line, then the
-   requirement checklist with who verified each criterion, what was fixed, P3 items
-   awaiting your decision, checks run, and log paths.
+   lists any finding escalated to you, then the findings Claude rejected or moved
+   below the must-fix line, then the requirement checklist with who verified each
+   criterion, what was fixed, P3 items awaiting your decision, checks run, and log
+   paths.
 6. Decide on the P3 items, for example "fix P3 items 1 and 3".
 7. Read the diff (`git diff`, `git diff --cached`) and commit it yourself, including
    `docs/reviews/decisions.md` when rows were added.
@@ -268,8 +273,8 @@ The verdict is one of five. The first that fits the run is used:
 
 | Verdict | What happened | What to do |
 |---|---|---|
-| `review failed` | The last round gave no usable review: Codex failed or was stopped, no sandboxed command ran, a tool that should be off was called, the working tree changed during the review, or the reviewer's tools could not be limited. | Fix the cause the report names and rerun. Nothing was judged. |
-| `open findings` | A valid P0-P2 finding that belongs to the task is not fixed, or Claude and Codex disagree on a finding for the second time. A defect outside the task does not count here; see two rows down. | Read those findings and decide. |
+| `review failed` | The last round gave no usable review: Codex failed or was stopped, no sandboxed command ran, a tool that should be off was called, the working tree changed during the review, or the reviewer's tools could not be limited. Or that round's review stands and its rebuttal failed. | Fix the cause the report names and rerun. When only the rebuttal failed, read the round's findings: those it covered are escalated to you. Otherwise nothing was judged. |
+| `open findings` | A valid P0-P2 finding that belongs to the task is not fixed, Claude and Codex disagree on a finding for the second time, or a finding is escalated to you because the second look or the rebuttal contradicted Claude. A defect outside the task does not count here; see two rows down. | Read those findings and decide. |
 | `fixes not re-reviewed` | Claude fixed findings in the last allowed round, or the loop was stopped, so no review has seen the latest code. | Rerun the loop, or read the last fixes yourself. |
 | `clean with unverified items` | No finding is open, but something rests on Claude alone: a criterion the reviewer could not check, a finding Claude rejected or moved to P3, a new file the review never mentioned, or a defect left as outside the task. | Read the listed items. This is the usual result when Codex cannot run your tests. |
 | `verified` | The last review saw the final code and found nothing to fix, the reviewer checked every criterion, and Claude overrode nothing. | Read the diff and commit. |
@@ -278,8 +283,49 @@ The checklist names who verified each criterion: the reviewer, the implementer, 
 is Claude's own test or check, or nobody. A criterion that Claude fixed counts as
 verified by the reviewer only once a later review has seen the fix. "Implementer
 overrides" at the top of the report lists every finding Claude rejected and every
-finding Codex rated P0 to P2 that Claude rated P3. No reviewer has confirmed those
-calls; they are yours to check.
+finding Codex rated P0 to P2 that Claude rated P3, each with what its second look
+found, and a rejected P0 or P1 with what its rebuttal found. Those calls are yours to
+check: a second look that agreed is another Claude agent's view, not the reviewer's,
+and only a finding Codex withdrew in a rebuttal has the reviewer's agreement.
+
+**When Claude overrides a finding.** Claude judges findings about its own work. The
+research cited in `docs/IMPROVEMENT_PLAN.md` found judges more lenient with work from
+their own conversation, and model validators far readier to confirm than to object.
+So before Claude records an override, the plugin's agent `finding-checker` checks the
+finding in a fresh context:
+
+- An override is a rejection, or a finding Codex labeled P0 to P2 that Claude labels
+  P3, unless Claude decides it is outside the task or it was disputed twice.
+- Claude decides every finding of a round before it writes anything, fixes and rows
+  of `decisions.md` alike, and checks with the fingerprint that the files are still
+  the ones the review saw, so that the agent and the rebuttal judge that code.
+- The agent can read and search files and nothing else, and it starts without your
+  `CLAUDE.md` files, though managed policy files that an organization sets still load.
+  That needs Claude Code 2.1.271 or later. Even then, Claude Code adds a folder's own
+  `CLAUDE.md` or rules when the agent works in that folder. The agent says in its answer
+  whether any of these files reached it, and when one did, the report says that the
+  second look did not run. It gets the finding as Codex wrote it, without its label, the
+  scope of the review, the severity scale, the committed version of each instruction
+  file the change edits, and, for a requirement finding, your request, criteria, and
+  decisions. It never sees Claude's decision or evidence, neither opens nor searches
+  `docs/reviews/decisions.md`, and gives no weight to what the finding quotes from
+  Claude's own files; a second look that a line of that file reached anyway does not
+  count. It answers whether the finding holds and how severe it is, and names the code
+  it read; an answer without that counts as one that cannot tell.
+- When it agrees, or cannot tell, the override stands, and the report says which. When
+  it disagrees, Claude traces its evidence and decides again, fixing a valid finding.
+  If Claude still holds its override, the finding is `escalated`: not fixed, not
+  recorded as rejected, and left to you. The loop stops after that round.
+- A finding Codex labeled P0 or P1 that Claude still rejects goes back to Codex once,
+  before its row in `docs/reviews/decisions.md` is written. This rebuttal is one more
+  review per round at most, under every rule of a round, and it does not count toward
+  `--rounds`. Codex either withdraws the finding, and the rejection is recorded, or
+  maintains it, and Claude decides again or escalates it. A rebuttal that fails, or
+  gives no answer, stops the loop as a failed review and leaves its findings to you.
+- Each override costs one agent call in Claude Code, and each round with a rejected P0
+  or P1 one more Codex review. `--report-only` runs the second look and no rebuttal. A
+  skill installed by hand, outside the plugin, has no agent; the report then says that
+  the second look did not run.
 
 Commands and options:
 
@@ -314,7 +360,8 @@ proposal and the same issue can come back P1 in one run and P2 in the next:
 | P1 | Definite bug or security weakness in realistic use, or an unmet acceptance criterion | Fixed, with a test |
 | P2 | Probable bug, missing guard or test, contract break, or a handoff claim the code does not support | Fixed, with a test |
 | P3 | Improvement, simplification, or style | Listed for your decision |
-| Rejected | Disproved by code, test output, or documentation | Row in `docs/reviews/decisions.md` |
+| Rejected | Disproved by code, test output, or documentation, after a second look, and for a P0 or P1 a rebuttal | Row in `docs/reviews/decisions.md` |
+| Escalated | An override that the second look or the rebuttal contradicted, and that Claude still holds | Escalated to you; no row is written |
 | Disputed twice | Raised again after a recorded rejection | Escalated to you |
 
 ## 8. Models and effort
@@ -352,8 +399,10 @@ payments, migrations, and secrets, and for the last pass before a pull request.
 ## 9. Usage limits
 
 Each review round is one heavy request against your ChatGPT plan's Codex allowance,
-which has short (hours) and weekly windows. A full loop is up to three rounds plus
-Claude's own usage on your Claude plan. Current limits per plan:
+which has short (hours) and weekly windows. A full loop is up to three rounds, and a
+round in which Claude rejects a finding Codex labeled P0 or P1 adds one rebuttal.
+Claude's own usage counts on your Claude plan, one agent call for each finding Claude
+overrides included. Current limits per plan:
 https://learn.chatgpt.com/docs/pricing
 
 To stay inside them:
@@ -429,6 +478,15 @@ reviewer reported a defect that a decision excused, one that an edited `AGENTS.m
 allowed, one that a false row in `decisions.md` covered, and an existing defect in an
 unchanged file. One run is not a measurement.
 
+A **rebuttal** uses the same prompt with another scope: the findings of a round that
+Claude rejected, each Codex labeled P0 or P1, each with Claude's evidence. The
+reviewer is told to check the finding and the evidence against the code, to treat the
+evidence as a claim and not to defer to it, to answer `withdrawn` or `maintained` for
+each finding, to report each one it maintains again, and to report nothing else.
+Observed on 2026-11-23 in a scratch repository of synthetic code, one run: Codex
+withdrew the finding whose rejection was right, maintained the one whose evidence was
+false, and reported nothing else. One run is not a measurement.
+
 ### What the reviewer can use
 
 Codex's read-only sandbox limits the commands the reviewer runs. A Codex installation
@@ -483,11 +541,12 @@ Everything is in `~/.claude/codex-reviews/<repo>/`:
 | `repository-root.txt` | The path of the repository this folder belongs to. The loop stops when another repository with the same folder name tries to use the folder. |
 | `task.md` | The current task file. Overwritten when the next task starts. |
 | `<run>-task.md` | The task file as it stood at the final report. |
-| `<run>-summary.json` | The run in a fixed shape, written at the final report: the mode and options, a hash of the request and criteria at the start and at the end, the verdict, the checklist, and for each round its duration, its fingerprint, whether it gave a usable review, what the reviewer ran, and each finding's tag, labels, and decision. It holds no text of a finding. |
+| `<run>-summary.json` | The run in a fixed shape, written at the final report: the mode and options, a hash of the request and criteria at the start and at the end, the verdict, the checklist, and for each round its duration, its fingerprint, whether it gave a usable review, what the reviewer ran, and each finding's tag, labels, decision, and what its second look and rebuttal found. It holds no text of a finding. |
 | `<run>-round<N>-prompt.md` | The exact prompt sent to Codex. |
 | `<run>-round<N>-codex.md` | Codex's review. |
 | `<run>-round<N>-codex.log` | Codex's progress, the commands it ran, and the session id. |
-| `<run>-round<N>-claude.md` | Claude's triage of the round, in a fixed shape: one table row per finding with Codex's label, Claude's label, the decision, the evidence, and the proof; the requirement checklist; and a judge record that identifies the review: plugin version, prompt hash, commit, fingerprint, web search mode, and what the reviewer ran. |
+| `<run>-round<N>-rebuttal-prompt.md`, `-rebuttal-codex.md`, `-rebuttal-codex.log` | The same three files for the round's rebuttal, when one ran. |
+| `<run>-round<N>-claude.md` | Claude's triage of the round, in a fixed shape: one table row per finding with Codex's label, Claude's label, the decision, the evidence, and the proof; one row per override with what its second look and rebuttal found; the requirement checklist; and a judge record that identifies the review: plugin version, prompt hash, commit, fingerprint, web search mode, and what the reviewer ran, with a second one for a rebuttal. |
 
 In the `.log` header, `sandbox:` must read `read-only`. The header's `model:` line
 is the session model; the review itself runs on the review model, which the report
@@ -513,7 +572,8 @@ writes two records, and the review thread's first line contains
 
 The logs answer questions about how the loop works for you: how many rounds a run
 takes, how often the first round is clean, which checks produce findings, how often
-Claude overrides the reviewer, what the reviewer ran, and how long a round takes. A
+Claude overrides the reviewer and how the second looks and rebuttals of those
+overrides end, what the reviewer ran, and how long a round takes. A
 script in this repository prints them. It is not part of the installed plugin, so run
 it from a clone, with Python 3.8 or newer:
 
@@ -527,8 +587,9 @@ that does not fit its shape or contradicts itself, for example by calling a roun
 reviewed in which no sandboxed command ran, is named with the reason and not used.
 Such a run, and every older run, is read from its review files, logs, and triage
 notes, which give fewer answers: what the reviewer reported comes from the review file,
-and decisions and final labels are known only from a summary or from a triage note in
-the fixed shape that lists the same findings. A round that gave no usable review,
+decisions and final labels are known only from a summary or from a triage note in the
+fixed shape that lists the same findings, and second looks and rebuttals only from a
+summary. A round that gave no usable review,
 because Codex failed, its review is missing, its log cannot be read, or no sandboxed
 command ran, is counted on its own line and enters no figure about findings: an unknown
 result is not a clean one. The script prints to the terminal and writes no file. The
@@ -691,3 +752,11 @@ Then delete the marked blocks from `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, 
   criterion as verified by the reviewer when the review says it checked it and Claude
   has not changed it since. That is Claude's reading of a summary, not a record of
   what Codex did.
+- **The second look and the rebuttal are checks, not proof.** The agent of the second
+  look never sees Claude's reasoning, but it is another model, and the research cited
+  in `docs/IMPROVEMENT_PLAN.md` found that models often err together, even across
+  providers, on tasks other than code review.
+  The rebuttal asks the reviewer that raised the finding, with Claude's evidence in
+  front of it, and review agents have been shown to be swayed by what they are told;
+  the prompt says not to defer to the evidence. How often either is right has not been
+  measured.

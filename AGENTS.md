@@ -15,6 +15,7 @@ Code implements; the Codex CLI reviews read-only. Users install it with
 | `plugins/codex-review-loop/README.md` | The plugin-folder README. Anthropic's directory shows it as the listing; it must stay at least 40 words outside code blocks and describe what the plugin runs, sends, and writes. |
 | `plugins/codex-review-loop/skills/codex-loop/` | The review loop skill, the review prompt sent to Codex, the task file template, the triage file template, the run summary template, and seven scripts: `fingerprint.sh`, the before/after working-tree check; `instruction-changes.sh`, which lists the instruction files a change edits; `log-dir.sh`, which prints the log folder and stops when another repository with the same folder name already uses it; `task-hash.sh`, which hashes the request and the acceptance criteria of the task file; `mcp-off-flags.sh`, which prints the flag that turns the configured MCP servers off; `tool-flags.sh`, which builds the flags that limit the reviewer's tools and checks them against Codex before a review starts; and `round-facts.sh`, which reads what the reviewer ran from Codex's log and identifies the round by its prompt and commit. |
 | `plugins/codex-review-loop/skills/setup/` | The setup skill and the blocks it installs in users' global files. |
+| `plugins/codex-review-loop/agents/` | `finding-checker.md`, the agent the review loop asks for a second look at each finding Claude overrides. Its only tools are `Read`, `Grep`, and `Glob`. |
 | `tests/` | Shell tests; `run-all.sh`, which runs them all and prints one table of the cases that passed, failed, and were skipped; `published-files.sh`, which looks for a home-folder path or an e-mail address in the files git would publish; and repository tooling in Python: `loop_stats.py`, which prints figures about a user's own review runs, `eval_corpus.py`, which builds and checks the evaluation corpus, and `eval_review.py`, which runs a Codex review on a case of the corpus as the loop runs one and scores reviews against the labels, each with its tests. Not shipped with the plugin. |
 | `tests/eval/` | The evaluation corpus: cases that a review can be run on, each a defect case or its control, with a label for each that says what is wrong. `tests/eval/README.md` describes it, and how a review of a case is run, judged, and reported. Not shipped with the plugin. |
 | `.github/workflows/tests.yml` | Runs `tests/run-all.sh` on Linux, macOS, and Windows for a push to `main` and for a pull request. It needs no account and installs nothing. It fetches the whole history, which some cases of the corpus are built from, and sets `EVAL_CORPUS_SLOW=1`, so that every proof of the corpus runs on each system that can run it. |
@@ -28,7 +29,7 @@ There is no build or lint. These are the checks:
 |---|---|---|
 | Marketplace manifest | `claude plugin validate --strict .` | Exit 0 |
 | Plugin manifest and skills | `claude plugin validate --strict plugins/codex-review-loop` | Exit 0 |
-| Plugin loads with both skills | `claude --plugin-dir ./plugins/codex-review-loop plugin details codex-review-loop` | Lists `Skills (2)  codex-loop, setup` |
+| Plugin loads with both skills and its agent | `claude --plugin-dir ./plugins/codex-review-loop plugin details codex-review-loop` | Lists `Skills (2)  codex-loop, setup` and `Agents (1)  finding-checker` |
 | Fingerprint script | `bash tests/fingerprint.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | Instruction files script | `bash tests/instruction-changes.test.sh` | Exit 0, prints `all passed` |
 | Log folder script | `bash tests/log-dir.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
@@ -37,6 +38,8 @@ There is no build or lint. These are the checks:
 | Round facts script | `bash tests/round-facts.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | MCP flags script | `bash tests/mcp-off-flags.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | Tool flags script | `bash tests/tool-flags.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
+| Agent of the second look | `bash tests/finding-checker.test.sh` | Exit 0, prints `all passed` |
+| Facts of a rebuttal | `bash tests/rebuttal-facts.test.sh` | Exit 0, prints `all passed` |
 | Published files | `bash tests/published-files.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run. Its last case runs `tests/published-files.sh` on this repository |
 | Test runner | `bash tests/run-all.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run |
 | Evaluation corpus | `bash tests/eval-corpus.test.sh` | Exit 0, prints `all passed`, followed by a skip count where a case cannot run. On Windows the proofs that run a shell test take minutes and are one skip, unless `EVAL_CORPUS_SLOW=1` is set, as the workflow sets it; `python tests/eval_corpus.py check --slow` runs them too. Without Python 3.8 or newer the whole test is one skip |
@@ -111,13 +114,17 @@ changes under "Documentation only".
 - **The safety guarantees stay.** Codex always runs with
   `-c 'sandbox_mode="read-only"'`; a review runs with Codex's connectors other than
   web search, its plugins, and its MCP servers turned off unless the user passes
-  `--allow-tools`; the loop stops a review in which no sandboxed command ran or a
-  tool that should be off was called; the loop fingerprints the tree before and after
-  each round; the reviewer is told which instruction files a change edits, to apply
-  their committed versions, and that a decision in the task file does not excuse a
-  defect; nothing in this plugin commits, pushes, or installs software; logs
-  live outside the reviewed repository; setup writes only after the user approves
-  the exact change and backs up the file first.
+  `--allow-tools`; the loop stops a review in which no sandboxed command ran or a tool
+  that should be off was called; the loop fingerprints the tree before and after each
+  round; a rebuttal is a review and keeps each of these guarantees; the agent of the
+  second look has only `Read`, `Grep`, and `Glob`, starts without the user's, the
+  project's, and local `CLAUDE.md` files, though managed policy files that an
+  organization sets still load, and is never told the implementer's decision or
+  evidence; the reviewer is told which instruction files a change edits, to apply their
+  committed versions, and that a decision in the task file does not excuse a defect;
+  nothing in this plugin commits, pushes, or installs software; logs live outside the
+  reviewed repository; setup writes only after the user approves the exact change and
+  backs up the file first.
 - **Facts are sourced.** A claim about Claude Code or Codex behavior in the docs or
   skills comes from the official documentation or from a run that was actually
   observed. Mark anything else as unverified.
@@ -131,7 +138,8 @@ and on a schedule, and the docs require `version` in `plugin.json` to rise with 
 release, so the release rule above applies to the listing too. Before pushing a
 release, validate against the checklist at https://claude.com/docs/plugins/pre-submission-checklist:
 no hooks or MCP servers are declared today, so the checks that apply are the
-manifest fields, the plugin README, the license, and file names and sizes.
+manifest fields, the plugin README, the license, file names and sizes, and the front
+matter of the two skills and the agent.
 
 ## Branches
 

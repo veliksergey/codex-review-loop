@@ -9,7 +9,8 @@ Each item is described here so that it can be read without the plan.
 
 ## Where things stand
 
-- The plugin is at 0.6.3. Releases A and B of the plan are done, except B5.
+- The plugin is at 0.7.0. Releases A and B of the plan are done, except B5, and C2
+  of release C.
 - The baseline is run and recorded: B6, with the experiments E1 and E2. Its results are
   private. They are kept in the loop's log folder, outside this repository, and no
   figure of them belongs in a file here.
@@ -41,11 +42,15 @@ Each item is described here so that it can be read without the plan.
   command showed. Without `--allow-tools`, the loop goes on stopping a review whose log
   records a call of one, and 0.6.3 says so. What is still open is under "Smaller
   points".
-- [ ] **C2: a second look at the implementer's overrides.** Before a rejection, or a
+- [x] **C2: a second look at the implementer's overrides.** Before a rejection, or a
   move from must-fix to P3, is recorded, a read-only subagent with a fresh context
   checks the finding against the code. For a rejected P0 or P1 the reviewer also gets
-  one rebuttal. The plan marks it as adoptable now, if the cost allows. It changes the
-  skill, so it is a release.
+  one rebuttal. Done in 0.7.0 on 2026-11-23: the plugin's agent `finding-checker` has
+  only `Read`, `Grep`, and `Glob`, and judges the finding without the implementer's
+  decision or evidence; a rebuttal is one more review per round at most, under every
+  rule of a round. An override that either contradicts and the implementer still holds
+  is `escalated` to the user. How often the agent and the rebuttal are right is not
+  measured; that needs the evaluation corpus and the maintainer's word.
 - [ ] **B5: a feasibility test of `claude plugin eval`.** For the mechanics of the
   skill, on Linux or WSL2, with a stand-in for `codex`. Five cases: not logged in, empty
   output, a changed fingerprint, report-only writes nothing, and the round limit
@@ -66,7 +71,7 @@ Each item is adopted only when its condition holds.
   reports at least as many must-fix findings as the one before. Adopt when E2 shows that
   findings of later rounds are real defects. E2 is run; the decision waits for the
   maintainer, with the private record.
-- [ ] **C2.** See above.
+- [x] **C2.** See above: done in 0.7.0.
 - [ ] **C3: a second pass for risk areas.** When round 1 is clean and the change touches
   paths the repository lists as risk areas, run a second pass with another focus, and
   let those areas set the effort. Adopt when E6 shows that the second pass finds

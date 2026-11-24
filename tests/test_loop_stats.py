@@ -9,6 +9,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -180,7 +181,7 @@ class LoopStatsTest(unittest.TestCase):
                           for f in runs[0]["rounds"][0]["findings"]],
                          [("criterion", "P1", "P1", "fixed"), ("handoff", "P2", "P3", "listed for the user"),
                           ("none", "none", "P2", "fixed"), ("none", "P2", "P2", "rejected")])
-        self.assertEqual(self.line("Implementer overrides:"), "Implementer overrides: 2")
+        self.assertEqual(self.line("Implementer overrides that stand:"), "Implementer overrides that stand: 2")
         self.assertEqual(self.line("Decisions:"), "Decisions: fixed: 2, listed for the user: 1, rejected: 1")
         self.assertEqual(self.line("The reviewer's label and the final label:"),
                          "The reviewer's label and the final label: P1 to P1: 1, P2 to P2: 1, P2 to P3: 1")
@@ -226,8 +227,10 @@ class LoopStatsTest(unittest.TestCase):
             self.assertEqual(reasons, [reason for reason in reasons if reason.startswith(f"round 2: {key}:")])
             self.assertEqual(len(reasons), 1, f"{key}={bad!r}: {reasons}")
         for key, bad in {"tag": "security", "reviewer_label": "P4", "final_label": "none",
-                         "decision": "accepted"}.items():
+                         "decision": "accepted", "second_look": "maybe", "rebuttal": "yes"}.items():
             data = summary()
+            # A finding holds both outcome keys or neither, so the other one is valid here.
+            data["rounds"][0]["findings"][0].update(second_look="not run", rebuttal="not run")
             data["rounds"][0]["findings"][0][key] = bad
             self.assertEqual([reason.split(":")[1].strip() for reason in loop_stats.check_summary(data)], [key])
         for key, bad in {"criterion": "one", "state": "done", "verified_by": "codex"}.items():
@@ -295,7 +298,7 @@ class LoopStatsTest(unittest.TestCase):
             "Findings: 7. By the reviewer's label: P0: 1, P1: 2, P2: 3, P3: 1",
             "By tag: criterion: 1, beyond request: 1, handoff: 1, none: 4",
             "Decisions: fixed: 3, not fixed: 1, listed for the user: 2, rejected: 1",
-            "Implementer overrides: 2",
+            "Implementer overrides that stand: 2",
             "Rounds with a readable log: 5 of 5",
             "Shell commands started: 15, failed to start: 1, rounds in which none ran: 0",
             "Web searches: 2. Other tool calls: 1. Tool calls by server: codex_apps: 2, node_repl: 1",
@@ -332,6 +335,288 @@ class LoopStatsTest(unittest.TestCase):
             return node
 
         self.assertEqual(loop_stats.check_summary(fill(template)), [])
+
+    def test_a_second_look_and_a_rebuttal_are_counted_when_a_summary_has_them(self):
+        # A summary from before the loop had them: no finding carries either key.
+        self.put("20260101-000000-summary.json", json.dumps(summary()))
+        self.assertEqual(self.line("Second looks at an override:"), "Second looks at an override: none")
+        self.assertEqual(self.line("Rebuttals of a rejected P0 or P1:"), "Rebuttals of a rejected P0 or P1: none")
+        # Run a: the rebuttal answered. One finding withdrawn, one maintained and escalated,
+        # so the findings are open.
+        a = summary(run="a", verdict="open findings")
+        a["rounds"][1]["findings"] = [
+            {"tag": "none", "reviewer_label": "P1", "final_label": "P1", "decision": "rejected",
+             "second_look": "agreed", "rebuttal": "withdrawn"},
+            {"tag": "none", "reviewer_label": "P0", "final_label": "P0", "decision": "escalated",
+             "second_look": "agreed", "rebuttal": "maintained"},
+            {"tag": "none", "reviewer_label": "P2", "final_label": "P2", "decision": "fixed",
+             "second_look": "disagreed", "rebuttal": "not run"},
+            {"tag": "none", "reviewer_label": "P3", "final_label": "P3", "decision": "listed for the user",
+             "second_look": "not run", "rebuttal": "not run"}]
+        # Run b: the rebuttal of its last round failed, so the run ended as a failed review.
+        b = summary(run="b", verdict="review failed")
+        b["rounds"][1]["findings"] = [
+            {"tag": "none", "reviewer_label": "P1", "final_label": "P1", "decision": "escalated",
+             "second_look": "could not tell", "rebuttal": "failed"}]
+        # Round 1 of each keeps its two findings without either key: both kinds can stand
+        # in one summary.
+        for data in (a, b):
+            self.assertEqual(loop_stats.check_summary(data), [], data["run"])
+            self.put(f"{data['run']}-summary.json", json.dumps(data))
+        os.remove(os.path.join(self.folder, "20260101-000000-summary.json"))
+        self.assertEqual(self.line("Second looks at an override:"),
+                         "Second looks at an override: agreed: 2, disagreed: 1, could not tell: 1")
+        self.assertEqual(self.line("Rebuttals of a rejected P0 or P1:"),
+                         "Rebuttals of a rejected P0 or P1: withdrawn: 1, maintained: 1, failed: 1")
+        self.assertEqual(self.line("Decisions:"),
+                         "Decisions: fixed: 3, listed for the user: 3, rejected: 1, escalated: 2")
+        # Each run's round-1 P2 moved to P3, the rejection, and the two escalated findings.
+        # The override that its second look reversed into a fix is not one.
+        self.assertEqual(self.line("Implementer overrides that stand:"), "Implementer overrides that stand: 5")
+
+    def test_a_failed_rebuttal_answered_for_no_finding_and_left_each_to_the_user(self):
+        def round_with(*outcomes):
+            data = summary(verdict="review failed")
+            data["rounds"][1]["findings"] = [
+                {"tag": "none", "reviewer_label": label, "final_label": label, "decision": decision,
+                 "second_look": "agreed", "rebuttal": rebuttal} for decision, rebuttal, label in outcomes]
+            return loop_stats.check_summary(data)
+
+        failed = ("escalated", "failed", "P1")
+        answered = ("round 2: findings: a failed rebuttal leaves no finding of its round "
+                    "withdrawn or maintained")
+        left_out = ("round 2: findings: a failed rebuttal covered each rejected P0 or P1 of its "
+                    "round, so none can stand rejected")
+        self.assertEqual(round_with(failed, failed), [])
+        self.assertEqual(round_with(failed, ("escalated", "maintained", "P0")), [answered])
+        # A withdrawn P1 stands rejected too, so both reasons hold for it.
+        self.assertEqual(round_with(failed, ("rejected", "withdrawn", "P1")), [answered, left_out])
+        self.assertEqual(round_with(("rejected", "failed", "P1")),
+                         ["round 2: findings: a finding whose rebuttal failed must be escalated"])
+        # The rebuttal covered every rejected P0 or P1 of the round: one left out of it,
+        # still rejected, contradicts the failure. A rejected P2 gets no rebuttal.
+        for label in ("P0", "P1"):
+            self.assertEqual(round_with(failed, ("rejected", "not run", label)), [left_out], label)
+        self.assertEqual(round_with(failed, ("rejected", "not run", "P2")), [])
+
+    def test_a_decision_that_contradicts_an_answered_rebuttal_is_named(self):
+        def finding_with(decision, rebuttal):
+            data = summary(verdict="open findings" if decision == "escalated" else "clean with unverified items")
+            data["rounds"][1]["findings"] = [
+                {"tag": "none", "reviewer_label": "P1", "final_label": "P1", "decision": decision,
+                 "second_look": "agreed", "rebuttal": rebuttal}]
+            return loop_stats.check_summary(data)
+
+        self.assertEqual(finding_with("rejected", "withdrawn"), [])
+        for decision in ("fixed", "listed for the user"):
+            self.assertEqual(finding_with(decision, "withdrawn"),
+                             ["round 2: rebuttal: a finding the reviewer withdrew stands rejected"], decision)
+        # A withdrawal leaves nothing to escalate, so that decision is named twice.
+        self.assertEqual(finding_with("escalated", "withdrawn"),
+                         ["round 2: rebuttal: a finding the reviewer withdrew stands rejected",
+                          "round 2: decision: an escalated finding follows a second look that disagreed, "
+                          "or a rebuttal maintained or failed"])
+        for decision in ("fixed", "escalated"):
+            self.assertEqual(finding_with(decision, "maintained"), [], decision)
+        self.assertEqual(finding_with("rejected", "maintained"),
+                         ["round 2: rebuttal: a finding the reviewer maintained cannot stand rejected"])
+        # A summary of an earlier version holds no rebuttal, and its rejection still reads.
+        data = summary()
+        data["rounds"][1]["findings"] = [
+            {"tag": "none", "reviewer_label": "P1", "final_label": "P1", "decision": "rejected"}]
+        self.assertEqual(loop_stats.check_summary(data), [])
+
+    def test_a_decision_that_contradicts_a_disagreed_second_look_is_named(self):
+        def finding_with(decision, second_look="disagreed", rebuttal="not run", label="P2", final=None,
+                         verdict="clean with unverified items"):
+            data = summary(verdict=verdict)
+            data["rounds"][1]["findings"] = [
+                {"tag": "none", "reviewer_label": label, "final_label": final or label, "decision": decision,
+                 "second_look": second_look, "rebuttal": rebuttal}]
+            return loop_stats.check_summary(data)
+
+        # After a disagreement the implementer decided again, here a fix or a listed P3,
+        # or escalated the finding.
+        self.assertEqual(finding_with("fixed"), [])
+        self.assertEqual(finding_with("listed for the user", label="P1", final="P3"), [])
+        self.assertEqual(finding_with("escalated", verdict="open findings"), [])
+        for label in ("P0", "P1", "P2", "P3"):
+            self.assertIn("round 2: second_look: a finding the second look disagreed with cannot stand rejected",
+                          finding_with("rejected", label=label), label)
+        self.assertEqual(finding_with("rejected"),
+                         ["round 2: second_look: a finding the second look disagreed with cannot stand rejected"])
+        # Only a finding still rejected after its second look gets a rebuttal.
+        self.assertEqual(finding_with("escalated", rebuttal="maintained", label="P1", verdict="open findings"),
+                         ["round 2: rebuttal: a finding the second look disagreed with gets none"])
+        self.assertEqual(finding_with("escalated", rebuttal="failed", label="P1", verdict="review failed"),
+                         ["round 2: rebuttal: a finding the second look disagreed with gets none"])
+        # A second look that agreed, or none, leaves the rejection standing.
+        for second_look in ("agreed", "could not tell", "not run"):
+            self.assertEqual(finding_with("rejected", second_look=second_look), [], second_look)
+
+    def test_an_escalation_follows_a_disagreement_or_a_maintained_or_failed_rebuttal(self):
+        def escalated(second_look, rebuttal, label="P1", verdict="open findings"):
+            data = summary(verdict=verdict)
+            finding = {"tag": "none", "reviewer_label": label, "final_label": label, "decision": "escalated"}
+            if second_look is not None:
+                finding.update(second_look=second_look, rebuttal=rebuttal)
+            data["rounds"][1]["findings"] = [finding]
+            return loop_stats.check_summary(data)
+
+        self.assertEqual(escalated("disagreed", "not run", label="P2"), [])
+        unsupported = ["round 2: decision: an escalated finding follows a second look that disagreed, "
+                       "or a rebuttal maintained or failed"]
+        for second_look in ("agreed", "could not tell", "not run"):
+            self.assertEqual(escalated(second_look, "maintained"), [], second_look)
+            self.assertEqual(escalated(second_look, "failed", verdict="review failed"), [], second_look)
+            # Neither check contradicted the override, so it stands.
+            self.assertEqual(escalated(second_look, "not run", label="P2"), unsupported, second_look)
+        # A summary without the two keys cannot say what led to the escalation.
+        self.assertEqual(escalated(None, None), [])
+
+    def test_a_finding_holds_both_outcome_keys_or_neither(self):
+        def finding_with(**keys):
+            data = summary()
+            data["rounds"][1]["findings"] = [
+                {"tag": "none", "reviewer_label": "P1", "final_label": "P1", "decision": "rejected", **keys}]
+            return loop_stats.check_summary(data)
+
+        self.assertEqual(finding_with(), [])
+        self.assertEqual(finding_with(second_look="agreed", rebuttal="withdrawn"), [])
+        one = ["round 2: second_look and rebuttal: a finding holds both or neither"]
+        self.assertEqual(finding_with(second_look="agreed"), one)
+        self.assertEqual(finding_with(rebuttal="withdrawn"), one)
+
+    def test_an_override_stands_after_a_second_look_that_agreed_unless_a_rebuttal_answered(self):
+        def finding_with(decision, second_look="agreed", rebuttal="not run", label="P2", final=None):
+            data = summary()
+            data["rounds"][1]["findings"] = [
+                {"tag": "none", "reviewer_label": label, "final_label": final or label, "decision": decision,
+                 "second_look": second_look, "rebuttal": rebuttal}]
+            return loop_stats.check_summary(data)
+
+        stands = ["round 2: second_look: after a second look that agreed or could not tell, the override "
+                  "stands: rejected, or a P0 to P2 listed for the user as a P3"]
+        for second_look in ("agreed", "could not tell"):
+            self.assertEqual(finding_with("rejected", second_look), [], second_look)
+            self.assertEqual(finding_with("listed for the user", second_look, final="P3"), [], second_look)
+            # A fix, or a finding that was never an override, contradicts it.
+            for decision in ("fixed", "not fixed", "outside scope", "disputed twice"):
+                self.assertEqual(finding_with(decision, second_look), stands, (second_look, decision))
+            self.assertEqual(finding_with("listed for the user", second_look, label="P3"), stands, second_look)
+            # A P2 listed for the user without a move to P3 was no override either.
+            self.assertEqual(finding_with("listed for the user", second_look, label="P2"), stands, second_look)
+            # A rebuttal that the reviewer maintained lets the implementer decide again.
+            self.assertEqual(finding_with("fixed", second_look, "maintained", label="P1"), [], second_look)
+        # A fix after a second look that disagreed, or without one, follows no override.
+        self.assertEqual(finding_with("fixed", "disagreed"), [])
+        self.assertEqual(finding_with("fixed", "not run"), [])
+
+    def test_only_a_rejected_p0_or_p1_outside_a_report_only_run_gets_a_rebuttal(self):
+        def finding_with(label, rebuttal, **changes):
+            data = summary(**changes)
+            data["rounds"][1]["findings"] = [
+                {"tag": "none", "reviewer_label": label, "final_label": "P1" if label == "none" else label,
+                 "decision": "rejected", "second_look": "agreed", "rebuttal": rebuttal}]
+            return loop_stats.check_summary(data)
+
+        ineligible = ["round 2: rebuttal: only a finding the reviewer labeled P0 or P1 gets one, "
+                      "and a report-only run gets none"]
+        for label in ("P0", "P1"):
+            self.assertEqual(finding_with(label, "withdrawn"), [], label)
+            self.assertEqual(finding_with(label, "withdrawn", report_only=True), ineligible, label)
+        for label in ("P2", "P3", "none"):
+            self.assertEqual(finding_with(label, "withdrawn"), ineligible, label)
+            self.assertEqual(finding_with(label, "not run"), [], label)
+        # A rejected P0 or P1 had its rebuttal, except in a report-only run.
+        for label in ("P0", "P1"):
+            self.assertEqual(finding_with(label, "not run"),
+                             ["round 2: findings: a rejected P0 or P1 gets a rebuttal outside a "
+                              "report-only run"], label)
+            self.assertEqual(finding_with(label, "not run", report_only=True), [], label)
+
+    def test_a_finding_outside_scope_or_disputed_twice_is_no_override(self):
+        data = summary()
+        data["rounds"][1]["findings"] = [
+            {"tag": "none", "reviewer_label": "P2", "final_label": "P3", "decision": decision}
+            for decision in ("outside scope", "disputed twice", "listed for the user")]
+        self.put("20260101-000000-summary.json", json.dumps(data))
+        # Round 1's P2 moved to P3, and round 2's one that is listed for the user.
+        self.assertEqual(self.line("Implementer overrides that stand:"), "Implementer overrides that stand: 2")
+
+    def test_a_verdict_that_contradicts_a_failed_rebuttal_or_an_escalation_is_named(self):
+        def with_finding(round_index, verdict, **finding):
+            data = summary(verdict=verdict)
+            data["rounds"][round_index]["findings"] = [
+                {"tag": "none", "reviewer_label": "P1", "final_label": "P1", **finding}]
+            return loop_stats.check_summary(data)
+
+        failed = {"decision": "escalated", "second_look": "agreed", "rebuttal": "failed"}
+        self.assertEqual(with_finding(1, "clean with unverified items", **failed),
+                         ["verdict: must be review failed when the last round's rebuttal failed"])
+        self.assertEqual(with_finding(1, "open findings", **failed),
+                         ["verdict: must be review failed when the last round's rebuttal failed"])
+        self.assertEqual(with_finding(1, "review failed", **failed), [])
+        # The loop stops at a failed rebuttal, so no round can follow one.
+        self.assertEqual(with_finding(0, "review failed", **failed),
+                         ["rounds: only the last round can have a failed rebuttal, which stops the loop"])
+        escalated = {"decision": "escalated", "second_look": "disagreed", "rebuttal": "not run"}
+        # A usable last review with an escalated finding, and no failed rebuttal, leaves
+        # the findings open: every other verdict contradicts it.
+        for verdict in ("verified", "clean with unverified items", "fixes not re-reviewed", "review failed"):
+            self.assertEqual(with_finding(1, verdict, **escalated),
+                             ["verdict: must be open findings when a finding is escalated and no rebuttal failed"],
+                             verdict)
+        self.assertEqual(with_finding(1, "open findings", **escalated), [])
+        # The loop stops after a round with an escalated finding, so no round can follow it.
+        self.assertEqual(with_finding(0, "open findings", **escalated),
+                         ["rounds: only the last round can have an escalated finding, which stops the loop"])
+        # A rebuttal the reviewer answered, or none, asks for no particular verdict.
+        self.assertEqual(with_finding(1, "clean with unverified items", decision="rejected",
+                                      second_look="agreed", rebuttal="withdrawn"), [])
+
+    def test_the_templates_and_this_script_use_the_same_words(self):
+        folder = os.path.join(HERE, "..", "plugins", "codex-review-loop", "skills", "codex-loop")
+        with open(os.path.join(folder, "triage-template.md"), encoding="utf-8") as handle:
+            triage = handle.read()
+        with open(os.path.join(folder, "summary-template.json"), encoding="utf-8") as handle:
+            finding = json.load(handle)["rounds"][0]["findings"][0]
+        with open(os.path.join(folder, "SKILL.md"), encoding="utf-8") as handle:
+            skill = handle.read()
+
+        def choices(text):
+            """The words of "<a, b, or c>"."""
+            return tuple(re.split(r",(?: or)? ", text.strip("<>")))
+
+        listed = triage.split("Decision is exactly one of:")[1].split("\n## ")[0]
+        self.assertEqual(tuple(re.findall(r"^- `([^`]+)`:", listed, re.M)), loop_stats.DECISIONS)
+        self.assertEqual(choices(finding["decision"]), loop_stats.DECISIONS)
+        self.assertEqual(choices(finding["second_look"]), loop_stats.SECOND_LOOKS)
+        self.assertEqual(choices(finding["rebuttal"]), loop_stats.REBUTTALS)
+        row = re.search(r"^\| 1 \| <rejected, or P3> \| (<[^>]+>) \| [^|]+ \| (<[^>]+>) \|", triage, re.M)
+        self.assertIsNotNone(row, "the overrides table of the triage template")
+        self.assertEqual(choices(row.group(1)), loop_stats.SECOND_LOOKS)
+        self.assertEqual(choices(row.group(2)), loop_stats.REBUTTALS)
+        self.assertIn("`escalated`", skill)
+
+    def test_the_files_of_a_rebuttal_are_not_read_as_a_round(self):
+        name = "20260101-000000"
+        self.put(f"{name}-round1-prompt.md", "prompt", mtime=1000)
+        self.put(f"{name}-round1-codex.md", review("One finding.", ("P1", "", "A bug")), mtime=1300)
+        self.put(f"{name}-round1-codex.log", log())
+        # The rebuttal's own review maintains the finding and adds another, and its log
+        # records a tool call: none of it belongs to round 1.
+        self.put(f"{name}-round1-rebuttal-prompt.md", "prompt", mtime=1400)
+        self.put(f"{name}-round1-rebuttal-codex.md",
+                 review("1 maintained.", ("P1", "", "A bug"), ("P0", "", "Another")), mtime=1600)
+        self.put(f"{name}-round1-rebuttal-codex.log", log(tools=["node_repl/js"]))
+        runs, unusable = loop_stats.collect(self.folder)
+        self.assertEqual(unusable, [])
+        self.assertEqual([(run["run"], [entry["round"] for entry in run["rounds"]]) for run in runs],
+                         [(name, [1])])
+        entry = runs[0]["rounds"][0]
+        self.assertEqual([finding["reviewer_label"] for finding in entry["findings"]], ["P1"])
+        self.assertEqual((entry["facts"]["other_tool_calls"], entry["seconds"]), (0, 300))
 
     def test_wording_that_counts_as_unverified(self):
         for text, expected in (("Reviewed; the test suites were not run.", True),

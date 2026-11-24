@@ -26,10 +26,14 @@ This repository is a Claude Code plugin. It installs two commands:
 3. Claude starts Codex in a read-only sandbox with the change and the task file.
    Codex reports findings labeled P0 (worst) to P3. Claude prints them verbatim.
 4. Claude verifies each finding against the code. Valid P0-P2 findings are fixed
-   with a regression test. P3 items wait for your decision. Rejected findings are
-   recorded with evidence in the repository's `docs/reviews/decisions.md`. The next
-   review checks each new row once against the code, and Codex does not raise a
-   finding again while its evidence holds.
+   with a regression test. P3 items wait for your decision. Before Claude rejects a
+   finding, or moves one below the must-fix line, a read-only agent checks it in a
+   fresh context, without Claude's reasoning; a rejected P0 or P1 also goes back to
+   Codex once, for a rebuttal. A finding either of them contradicts, and that Claude
+   still holds, is escalated to you. Rejected findings are recorded with evidence in
+   the repository's `docs/reviews/decisions.md`. The next review checks each new row
+   once against the code, and Codex does not raise a finding again while its evidence
+   holds.
 5. Claude re-runs the checks and the review, at most three rounds, then reports. The
    report starts with a verdict that says how far the result was verified, from
    `verified` to `review failed`, and with every finding Claude rejected or
@@ -42,7 +46,7 @@ finding in the code, and the final decision and the commit are yours.
 
 | Requirement | Notes |
 |---|---|
-| Claude Code | Needs a Pro, Max, Team, Enterprise, or Console account. Install: https://code.claude.com/docs/en/setup |
+| Claude Code | Needs a Pro, Max, Team, Enterprise, or Console account. Install: https://code.claude.com/docs/en/setup. The second look at a finding Claude overrides needs version 2.1.271 or later; with an older one, the loop says the second look did not run. |
 | Codex CLI, signed in | Needs a ChatGPT plan that includes Codex. Install: https://learn.chatgpt.com/docs/codex/cli. Sign in with `codex login`. |
 | git | Every reviewed project must be a git repository. |
 | Windows only: Git for Windows | Gives Claude Code its Bash tool, which the review command needs. https://git-scm.com/downloads/win |
@@ -171,6 +175,13 @@ made. Review logs stay in `~/.claude/codex-reviews/` until you delete them.
   review use your own Codex tools.
 - After each review the loop shows what the reviewer used. It stops if no sandboxed
   command ran, or if a tool that should be off was called.
+- Before Claude rejects a finding or moves one below the must-fix line, the plugin's
+  agent `finding-checker`, which can read files and nothing else, checks the finding
+  without seeing Claude's decision or reasoning, and without your `CLAUDE.md` files,
+  though managed policy files that an organization sets still load. A finding Codex
+  labeled P0 or P1 also gets one rebuttal, run under every rule of a review. A finding
+  that either contradicts and Claude still holds is left to you, not recorded as
+  rejected.
 - A change must not rewrite the rules it is judged by. When it edits `AGENTS.md`,
   `CLAUDE.md`, a `.codex` folder, or `docs/reviews/decisions.md`, the loop names those
   files to you and tells the reviewer to apply their committed versions and to review
@@ -205,14 +216,15 @@ nothing sent to the authors. Two tools send data to their own providers while th
 loop runs:
 
 - The Codex CLI sends OpenAI the task file, whatever the reviewer reads while it
-  reviews, and its web searches, under your own ChatGPT account. That is governed by
+  reviews, and its web searches, under your own ChatGPT account; in a rebuttal, also
+  Claude's evidence against the findings it rejected. That is governed by
   OpenAI's privacy policy at https://openai.com/policies/privacy-policy and by your
   plan.
 - Claude Code sends the model provider you run it with your prompts and the model's
   outputs, as it does in every session; see https://code.claude.com/docs/en/data-usage
   (read on 2026-11-16). The code Claude reads for the task is part of that
   conversation, and so is Codex's review, which the loop shows to Claude so that it
-  can check each finding.
+  can check each finding, and so is the agent's second look.
 
 Review logs stay in `~/.claude/codex-reviews/` until you delete them. Report product
 or security concerns through the repository's issues.
@@ -224,6 +236,7 @@ or security concerns through the repository's issues.
 | `.claude-plugin/marketplace.json` | The marketplace catalog: one plugin. |
 | `plugins/codex-review-loop/skills/codex-loop/` | The review loop: `SKILL.md`, the review prompt sent to Codex, the templates for the task file, the triage note, and the run summary, and seven small shell scripts it runs. |
 | `plugins/codex-review-loop/skills/setup/` | The setup command and the rule templates it installs. |
+| `plugins/codex-review-loop/agents/` | `finding-checker`, the agent that takes a second look at each finding Claude overrides. It can read files and nothing else. |
 | `plugins/codex-review-loop/README.md` | Short README inside the plugin folder, shown by Anthropic's plugin directory. |
 | `tests/` | Shell tests for this repository, with `run-all.sh` to run them all; `published-files.sh`, which looks for a home-folder path or an e-mail address in the files git would publish; `loop_stats.py`, a Python script that prints figures about your own review runs from the log folder; `eval_corpus.py`, which builds and checks the evaluation corpus; and `eval_review.py`, which runs a Codex review on a case of that corpus when you ask for one and scores reviews against the labels. Not part of the installed plugin. |
 | `tests/eval/` | An evaluation corpus for measuring the reviewer: small cases with a known defect, each beside the same case without it, and a label that says what is wrong. Its `README.md` explains it, and how a review of a case is run and scored. A review of a case spends one review of your Codex allowance, and its results are kept outside the repository. Not part of the installed plugin. |

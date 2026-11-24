@@ -3,7 +3,8 @@
 Claude Code writes the code. OpenAI's Codex CLI reviews it, read-only, against what
 you asked for. Claude verifies every finding, fixes the valid P0-P2 ones with a
 regression test, holds P3 items for your decision, and asks Codex to look again, up
-to three rounds. Nothing is committed until you commit it.
+to three rounds. Before Claude overrides a finding, a read-only agent checks it, and
+a rejected P0 or P1 goes back to Codex once. Nothing is committed until you commit it.
 
 The plugin is built for Claude Code: it needs a terminal with git and the Codex CLI.
 The repository around this folder holds the full documentation:
@@ -19,6 +20,8 @@ https://github.com/veliksergey/codex-review-loop
 ## Requirements
 
 - Claude Code, and the Codex CLI signed in with a ChatGPT plan that includes Codex.
+  The second look at a finding Claude overrides needs Claude Code 2.1.271 or later;
+  with an older one, the loop says the second look did not run.
 - Every reviewed project must be a git repository.
 - On Windows, Git for Windows, which gives Claude Code the Bash tool the loop needs.
 
@@ -44,9 +47,15 @@ https://github.com/veliksergey/codex-review-loop
   nothing. Codex's own tools stay on. Three of them list and read the resources of MCP
   servers, and no Codex setting that the loop can use turns them off (Codex 0.171.0,
   checked on 2026-11-23); without `--allow-tools`, the loop stops a review whose log
-  records a call of one.
+  records a call of one. Claude Code also runs the plugin's agent, `finding-checker`,
+  which can only read files and starts without your `CLAUDE.md` files, though managed
+  policy files that an organization sets still load, for a second look at each finding
+  Claude rejects or moves below the must-fix line. A finding Codex labeled P0 or P1
+  that Claude still rejects gets a rebuttal: at most one more `codex exec review` per
+  round, under the same limits.
 - **Sends** the task file, and whatever the reviewer reads, to OpenAI through your
-  own ChatGPT account, because that is where Codex runs. The sandbox blocks writing,
+  own ChatGPT account, because that is where Codex runs. A rebuttal also sends the
+  rejected findings and Claude's evidence against them. The sandbox blocks writing,
   not reading, so the reviewer can read files outside the change. It can also search
   the web and open public pages unless you pass `--web off`. Say "skip review" for
   code that must not leave your machine, and keep secrets out of your requests.
@@ -67,7 +76,8 @@ https://github.com/veliksergey/codex-review-loop
   the log folder.
 - **Reports** one of five verdicts, from `verified` to `review failed`, so a result
   that rests on Claude's own checks or on fixes no review has seen does not read as
-  verified.
+  verified. A finding that the second look or the rebuttal contradicts, and that
+  Claude still holds, is escalated to you, not recorded as rejected.
 - **Guards the rules of the review.** When a change edits `AGENTS.md`, `CLAUDE.md`, a
   `.codex` folder, or `docs/reviews/decisions.md`, the loop names those files to you
   and tells the reviewer to apply their committed versions, to review the edits, and
@@ -81,14 +91,15 @@ nothing to its authors, and contains no analytics. Two tools send data to their 
 providers while the loop runs:
 
 - The Codex CLI sends OpenAI the task file, whatever the reviewer reads while it
-  reviews, and its web searches, under your own ChatGPT account. OpenAI's handling of
+  reviews, and its web searches, under your own ChatGPT account; in a rebuttal, also
+  Claude's evidence against the findings it rejected. OpenAI's handling of
   that data is governed by its privacy policy,
   https://openai.com/policies/privacy-policy, and by your ChatGPT plan.
 - Claude Code sends the model provider you run it with your prompts and the model's
   outputs, as it does in every session; see https://code.claude.com/docs/en/data-usage
   (read on 2026-11-16). The code Claude reads for the task is part of that
   conversation, and so is Codex's review, which the loop shows to Claude so that it
-  can check each finding.
+  can check each finding, and so is the agent's second look.
 
 Review logs stay in `~/.claude/codex-reviews/` on your machine until you delete them.
 For product or security concerns, open an issue in the repository:

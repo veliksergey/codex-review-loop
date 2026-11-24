@@ -42,7 +42,11 @@ FINGERPRINT = re.compile(r"^(none|[0-9a-f]{40,64}( [0-9a-f]{40,64}){3})$")
 LABELS = ("P0", "P1", "P2", "P3")
 MUST_FIX = ("P0", "P1", "P2")
 TAGS = ("criterion", "beyond request", "handoff", "none")
-DECISIONS = ("fixed", "not fixed", "listed for the user", "rejected", "outside scope", "disputed twice")
+DECISIONS = ("fixed", "not fixed", "listed for the user", "rejected", "outside scope", "disputed twice",
+             "escalated")
+# What the second look at an override and the rebuttal of a rejected P0 or P1 found.
+SECOND_LOOKS = ("not run", "agreed", "disagreed", "could not tell")
+REBUTTALS = ("not run", "withdrawn", "maintained", "failed")
 VERDICTS = ("verified", "clean with unverified items", "fixes not re-reviewed", "open findings",
             "review failed")
 MODES = ("uncommitted", "branch", "paths", "audit")
@@ -266,11 +270,77 @@ def check_summary(data):
             need(finding, "tag", one_of(TAGS), "must be one of " + ", ".join(TAGS))
             need(finding, "reviewer_label", one_of(LABELS + ("none",)), "must be P0 to P3, or none")
             need(finding, "final_label", one_of(LABELS), "must be P0 to P3")
-            need(finding, "decision", one_of(DECISIONS), "must be one of the six decision words")
+            need(finding, "decision", one_of(DECISIONS), "must be one of the seven decision words")
+            for key, options in (("second_look", SECOND_LOOKS), ("rebuttal", REBUTTALS)):
+                # A summary written before the loop had them holds neither key.
+                if isinstance(finding, dict) and key in finding and not one_of(options)(finding[key]):
+                    why.append(f"{key}: must be one of " + ", ".join(options))
+            # A finding holds both keys or neither: one alone hides how the other ended.
+            if isinstance(finding, dict) and ("second_look" in finding) != ("rebuttal" in finding):
+                why.append("second_look and rebuttal: a finding holds both or neither")
+            # What the reviewer answered settles the decision: a withdrawn finding stands
+            # rejected, and a maintained one cannot. Only a finding labeled P0 or P1 gets
+            # a rebuttal, and a report-only run runs none.
+            if isinstance(finding, dict):
+                if finding.get("rebuttal") in ("withdrawn", "maintained", "failed") and (
+                        finding.get("reviewer_label") not in ("P0", "P1") or data.get("report_only") is True):
+                    why.append("rebuttal: only a finding the reviewer labeled P0 or P1 gets one, "
+                               "and a report-only run gets none")
+                if finding.get("rebuttal") == "withdrawn" and finding.get("decision") != "rejected":
+                    why.append("rebuttal: a finding the reviewer withdrew stands rejected")
+                if finding.get("rebuttal") == "maintained" and finding.get("decision") == "rejected":
+                    why.append("rebuttal: a finding the reviewer maintained cannot stand rejected")
+                # A second look that disagreed ends in a new decision or an escalation: its
+                # finding cannot stand rejected, and is not still rejected for a rebuttal.
+                if finding.get("second_look") == "disagreed":
+                    if finding.get("decision") == "rejected":
+                        why.append("second_look: a finding the second look disagreed with cannot stand rejected")
+                    if finding.get("rebuttal") in ("withdrawn", "maintained", "failed"):
+                        why.append("rebuttal: a finding the second look disagreed with gets none")
+                # One that agreed, or could not tell, leaves the override standing unless a
+                # rebuttal answered: rejected, or a P0 to P2 listed for the user as a P3.
+                if (finding.get("second_look") in ("agreed", "could not tell")
+                        and finding.get("rebuttal") == "not run" and finding.get("decision") != "escalated"
+                        and finding.get("decision") != "rejected"
+                        and not (finding.get("decision") == "listed for the user"
+                                 and finding.get("reviewer_label") in MUST_FIX
+                                 and finding.get("final_label") == "P3")):
+                    why.append("second_look: after a second look that agreed or could not tell, the "
+                               "override stands: rejected, or a P0 to P2 listed for the user as a P3")
+                # An escalation follows a second look that disagreed, or a rebuttal that the
+                # reviewer maintained or that failed; without the keys, a summary cannot say.
+                if (finding.get("decision") == "escalated" and "second_look" in finding
+                        and "rebuttal" in finding and finding.get("second_look") != "disagreed"
+                        and finding.get("rebuttal") not in ("maintained", "failed")):
+                    why.append("decision: an escalated finding follows a second look that disagreed, "
+                               "or a rebuttal maintained or failed")
         if isinstance(entry, dict):
             # A round without a usable review has no findings to list.
             if entry.get("reviewed") is False and findings:
                 why.append("findings: must be empty when reviewed is false")
+            # A round has one rebuttal: when it failed, it answered for no finding, and
+            # each finding it covered is left to the user.
+            outcomes = [finding.get("rebuttal") for finding in findings if isinstance(finding, dict)]
+            if "failed" in outcomes and ("withdrawn" in outcomes or "maintained" in outcomes):
+                why.append("findings: a failed rebuttal leaves no finding of its round withdrawn or maintained")
+            if any(isinstance(finding, dict) and finding.get("rebuttal") == "failed"
+                   and finding.get("decision") != "escalated" for finding in findings):
+                why.append("findings: a finding whose rebuttal failed must be escalated")
+            # Outside a report-only run, a rejected P0 or P1 had its rebuttal: one marked
+            # as not run contradicts that. Beside a failed rebuttal, the rule below says so.
+            if "failed" not in outcomes and data.get("report_only") is False and any(
+                    isinstance(finding, dict) and finding.get("decision") == "rejected"
+                    and finding.get("reviewer_label") in ("P0", "P1")
+                    and finding.get("rebuttal") == "not run" for finding in findings):
+                why.append("findings: a rejected P0 or P1 gets a rebuttal outside a report-only run")
+            # The rebuttal covers every rejected P0 or P1 of its round, so none left out of
+            # it can stand rejected beside a failed one.
+            if "failed" in outcomes and any(
+                    isinstance(finding, dict) and finding.get("decision") == "rejected"
+                    and finding.get("reviewer_label") in ("P0", "P1")
+                    and finding.get("rebuttal") != "failed" for finding in findings):
+                why.append("findings: a failed rebuttal covered each rejected P0 or P1 of its round, "
+                           "so none can stand rejected")
             lines = as_list(entry.get("facts"))
             if not lines:
                 # The loop also stops a round as failed when it can read no facts of it.
@@ -309,6 +379,20 @@ def check_summary(data):
         last = max(data["rounds"], key=lambda entry: entry["round"])
         if last["reviewed"] is False and data["verdict"] != "review failed":
             why.append("verdict: must be review failed when the last round gave no usable review")
+        # A failed rebuttal and an escalated finding each stop the loop after their round.
+        # The first makes the run a failed review; the second leaves findings open.
+        failed = [entry["round"] for entry in data["rounds"]
+                  if any(finding.get("rebuttal") == "failed" for finding in entry["findings"])]
+        escalated = [entry["round"] for entry in data["rounds"]
+                     if any(finding["decision"] == "escalated" for finding in entry["findings"])]
+        if any(number != last["round"] for number in failed):
+            why.append("rounds: only the last round can have a failed rebuttal, which stops the loop")
+        elif any(number != last["round"] for number in escalated):
+            why.append("rounds: only the last round can have an escalated finding, which stops the loop")
+        elif failed and data["verdict"] != "review failed":
+            why.append("verdict: must be review failed when the last round's rebuttal failed")
+        elif escalated and not failed and data["verdict"] != "open findings":
+            why.append("verdict: must be open findings when a finding is escalated and no rebuttal failed")
     return why
 
 
@@ -467,7 +551,14 @@ def report(runs, unusable):
 
     findings = [finding for entry in reviewed for finding in entry["findings"]]
     labels, tags, decisions, matrix, overrides = {}, {}, {}, {}, 0
+    looks, rebuttals = {}, {}
     for finding in findings:
+        # Findings read from files carry neither key; "not run" is not counted.
+        look, rebuttal = finding.get("second_look"), finding.get("rebuttal")
+        if look in SECOND_LOOKS and look != "not run":
+            looks[look] = looks.get(look, 0) + 1
+        if rebuttal in REBUTTALS and rebuttal != "not run":
+            rebuttals[rebuttal] = rebuttals.get(rebuttal, 0) + 1
         labels[finding["reviewer_label"]] = labels.get(finding["reviewer_label"], 0) + 1
         tags[finding["tag"]] = tags.get(finding["tag"], 0) + 1
         if finding["decision"]:
@@ -475,8 +566,10 @@ def report(runs, unusable):
         if finding["final_label"] and finding["reviewer_label"] in LABELS:
             pair = f"{finding['reviewer_label']} to {finding['final_label']}"
             matrix[pair] = matrix.get(pair, 0) + 1
-        if finding["decision"] == "rejected" or (
-                finding["reviewer_label"] in MUST_FIX and finding["final_label"] == "P3"):
+        # A finding outside the task, or disputed twice, is the user's to decide: no override.
+        if finding["decision"] in ("rejected", "escalated") or (
+                finding["reviewer_label"] in MUST_FIX and finding["final_label"] == "P3"
+                and finding["decision"] not in ("outside scope", "disputed twice")):
             overrides += 1
     out += ["", "Which checks produce findings?",
             f"  Findings: {len(findings)}. By the reviewer's label: " + counted(labels, LABELS + ("none",)),
@@ -484,9 +577,12 @@ def report(runs, unusable):
             "", "How does triage treat the reviewer?",
             "  Decisions: " + counted(decisions, DECISIONS),
             "  The reviewer's label and the final label: " + counted(matrix),
-            f"  Implementer overrides: {overrides}",
+            f"  Implementer overrides that stand: {overrides}",
+            "  Second looks at an override: " + counted(looks, SECOND_LOOKS),
+            "  Rebuttals of a rejected P0 or P1: " + counted(rebuttals, REBUTTALS),
             "  Decisions and final labels are known from summary files, and from triage notes in the fixed "
-            "shape that list the review's findings."]
+            "shape that list the review's findings. Second looks and rebuttals are known from summary "
+            "files only."]
 
     known = [entry["facts"] for entry in rounds if entry["facts"]]
     sandboxes, versions, servers = {}, {}, {}

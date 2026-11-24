@@ -10,7 +10,7 @@ loop; they differ in how much of the plugin system you use.
 
 ## What you would be trusting
 
-The plugin is the folder `plugins/codex-review-loop/`, 25 files:
+The plugin is the folder `plugins/codex-review-loop/`, 26 files:
 
 | Files | What they are |
 |---|---|
@@ -31,23 +31,27 @@ The plugin is the folder `plugins/codex-review-loop/`, 25 files:
 | `skills/codex-loop/instruction-changes.sh` | A script of read-only `git` commands that lists the instruction files your change edits, such as `AGENTS.md`, so that the reviewer can be told to apply their committed versions. It changes nothing. |
 | `skills/setup/SKILL.md` | Instructions Claude follows when you run the setup command. |
 | `skills/setup/templates/` | Eight plain-text templates that setup pastes into your config files. |
+| `agents/finding-checker.md` | An agent that the review command asks for a second look at each finding Claude overrides. Its only tools are `Read`, `Grep`, and `Glob`: it cannot run a command or change a file. It starts without your `CLAUDE.md` files; managed policy files that an organization sets still load. |
 | `LICENSE` | MIT. |
 
-There are no hooks, background servers, or agents. Nothing runs when Claude Code
-starts; Claude reads these files only when you, or the rules in your `CLAUDE.md`,
-start one of the two commands.
+There are no hooks or background servers, and the one agent runs only when the
+review command asks for it. Nothing runs when Claude Code starts; Claude reads these
+files only when you, or the rules in your `CLAUDE.md`, start one of the two commands.
 
 When those commands run:
 
 - **The review command** reads your repository with git, runs Codex with a
   read-only sandbox and with Codex's connectors, plugins, and MCP servers turned off,
   writes its logs to `~/.claude/codex-reviews/<repo>/`, and edits your code only to
-  fix findings. With `--report-only` it edits nothing.
+  fix findings. With `--report-only` it edits nothing. Before Claude overrides a
+  finding, it asks the agent for a second look, and a rejected P0 or P1 goes back to
+  Codex once, in one more read-only review.
 - **The setup command** changes `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, and
   `~/.codex/config.toml`, each only after showing you the exact change and getting
   your approval, and backs each file up first.
 - **The task file and whatever the reviewer reads** are sent to OpenAI through your
-  ChatGPT account, as with any Codex use. The reviewer can also search the web unless
+  ChatGPT account, as with any Codex use, and in a rebuttal Claude's evidence against
+  the findings it rejected. The reviewer can also search the web unless
   you pass `--web off`.
 
 ## Review it in about ten minutes
@@ -63,7 +67,7 @@ When those commands run:
    such as `C:\src`, or run
    `git -c core.longpaths=true clone https://github.com/veliksergey/codex-review-loop.git`.
 
-2. List what the plugin contains. Expect the 25 files above:
+2. List what the plugin contains. Expect the 26 files above:
 
    ```bash
    git ls-files plugins/
@@ -90,6 +94,7 @@ When those commands run:
 |---|---|---|---|
 | How | Register your reviewed clone as a local marketplace | Copy one folder into `~/.claude/skills` | Copy the review command as a personal skill, and paste the rules into your config files yourself |
 | Commands you get | `/codex-review-loop:codex-loop` (short: `/codex-loop`) and `/codex-review-loop:setup` | The same | `/codex-loop` only. You do setup's job by hand |
+| Second look at an override | Yes | Yes | No: the agent comes only with the plugin, and the report says the second look did not run |
 | Taking a new version | `git pull` in your clone, after reading the changes | Replace the folder with the newer one | Replace the skill folder and update the blocks you pasted |
 | Effort | Lowest | Low | Most |
 
@@ -107,4 +112,7 @@ On Windows on 2026-10-05, each path in a separate, empty Claude Code profile:
   (`.claude/skills` inside a folder), because the empty profile was not signed in
   to Claude; personal skills in `~/.claude/skills` load by the same rules. Pasting
   the rule blocks (step 3) was not run end to end.
+- On 2026-11-23, after the agent was added, the check of paths 1 and 2 was run again
+  in two empty profiles on Windows: `claude plugin details` listed
+  `Agents (1)  finding-checker` for both.
 - Nothing has been tested on macOS or Linux yet.

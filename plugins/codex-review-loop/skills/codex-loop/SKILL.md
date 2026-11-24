@@ -13,6 +13,11 @@ with the user's request, verifies every finding, fixes what the policy allows, a
 repeats until a review finds nothing to fix or the round limit is reached. The user
 watches the terminal: show them everything Codex says, verbatim.
 
+This file is long, and after a compaction Claude Code can keep only its start (observed
+2026-11-23: the copy it kept ended in step 4). If your copy of this skill ends before
+step 8, read `${CLAUDE_SKILL_DIR}/SKILL.md` in full before you go on: steps 6 to 8 hold
+the rules for triage, the second look, the rebuttal, and the final report.
+
 Arguments received: `$ARGUMENTS`
 
 ## 1. Parse the arguments
@@ -118,8 +123,11 @@ Files in `LOG_DIR`:
   - `<RUN>-round<N>-prompt.md`: the exact prompt sent to Codex.
   - `<RUN>-round<N>-codex.md`: Codex's final review, written by Codex through `-o`.
   - `<RUN>-round<N>-codex.log`: Codex's progress log and session id (stderr).
-  - `<RUN>-round<N>-claude.md`: your triage table, requirement checklist, and judge
-    record.
+  - `<RUN>-round<N>-claude.md`: your triage table, the overrides with their second
+    looks, the requirement checklist, and the judge record.
+  - `<RUN>-round<N>-rebuttal-prompt.md`, `-rebuttal-codex.md`, and
+    `-rebuttal-codex.log`: the same three files for the round's rebuttal, when step 6
+    runs one.
 - `<RUN>-summary.json`: the run in a fixed shape, written at the final report.
 
 ## 4. Run a round
@@ -155,18 +163,23 @@ files. Collect them yourself:
    unchanged lines that the change relies on still counts.
 ```
 
-Branch (substitute `<ref>`):
+Branch (substitute `<base>` and `<ref>`):
 
 ```text
-Target: all changes on the current branch relative to `<ref>`, plus any uncommitted
-changes. Collect them yourself:
-1. `git diff <ref>...HEAD --stat`, then `git diff <ref>...HEAD`, for the committed
+Target: all changes on the current branch since `<base>`, its merge base with `<ref>`,
+plus any uncommitted changes. Collect them yourself:
+1. `git diff <base>...HEAD --stat`, then `git diff <base>...HEAD`, for the committed
    changes since the merge base.
 2. `git status --short --untracked-files=all`, `git diff`, `git diff --cached`, and
    every untracked file in full, for the uncommitted changes.
 3. Read the whole of each changed file, not only the hunks, because a defect in
    unchanged lines that the change relies on still counts.
 ```
+
+`<base>` is the commit that `git merge-base <ref> HEAD` prints, resolved once per round
+before its prompt is built; if the command fails, stop and report its message. The
+round's prompt, `instruction-changes.sh`, the second looks, and the rebuttal all use
+that commit, so a `<ref>` that moves during the round changes nothing they judge.
 
 Paths (one repository-relative path per line):
 
@@ -190,9 +203,10 @@ user chose to proceed without one, the single line
 
 `{{INSTRUCTIONS}}`: the output of `bash "${CLAUDE_SKILL_DIR}/instruction-changes.sh"`,
 run exactly as written before every round, pasted unchanged; in branch mode run it with
-the ref as its one argument. It lists the instruction files the change edits:
-`AGENTS.md`, `AGENTS.override.md`, and `CLAUDE.md` in any folder, anything under a
-`.codex` folder, and `docs/reviews/decisions.md`. It prints `none` when there are none.
+the round's `<base>` as its one argument. It lists the instruction files the change
+edits: `AGENTS.md`, `AGENTS.override.md`, and `CLAUDE.md` in any folder, anything
+under a `.codex` folder, and `docs/reviews/decisions.md`. It prints `none` when there
+are none.
 The prompt tells the reviewer to apply the committed version of each listed file, to
 review the edit, and to check once every new row of `docs/reviews/decisions.md`. When
 files are listed, name them to the user before the round. If the script exits non-zero,
@@ -290,11 +304,14 @@ Rules for the command:
 
 ### Read the round's facts
 
-Run `bash "${CLAUDE_SKILL_DIR}/round-facts.sh"` exactly as written. It reads the newest
-round log of this repository, which is the round that just ended, and prints what the
-reviewer ran: the Codex CLI version, model, effort, and sandbox from the log header,
-the shell commands that started, ran, and failed to start, and each tool called outside
-the shell. If it exits non-zero, stop the loop and report its error.
+Run `bash "${CLAUDE_SKILL_DIR}/round-facts.sh"` exactly as written. It reads the
+newest round log of this repository, which is the round that just ended, and prints
+what the reviewer ran: the Codex CLI version, model, effort, and sandbox from the log
+header, the shell commands that started, ran, and failed to start, and each tool
+called outside the shell. If it exits non-zero, stop the loop and report its error.
+Its `log=` line must name `$RUN-round$N-codex.log`: when it names another log, such as
+one that another review wrote into the same folder since, the facts are not this
+round's, so stop the loop and report it.
 
 Stop the loop and report the review as failed, without triaging its output, when:
 
@@ -367,9 +384,9 @@ in `review-prompt.md`. The triage table keeps both labels, Codex's and yours.
 
 | Outcome | Rule |
 |---|---|
-| Valid, P0 / P1 / P2 | Fix it now with the smallest cohesive change. Add or extend a regression test that fails before the fix and passes after. |
-| Valid, P3 | Do not fix unasked. Put it on the "awaiting your decision" list in the final report. |
-| Invalid | Reject only with concrete evidence: a code path, test output, or primary documentation. Add a row to `docs/reviews/decisions.md` in the repository; if it is missing, create it from the setup skill's template, `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/repo-decisions.md`; when that path does not resolve because the skill was installed by hand, outside a plugin, create it with a `# Review decisions` heading and the table header `\| Date \| Finding \| Severity claimed \| Decision \| Evidence \|`. With `--report-only`, do not touch the repository: keep the rejection and its evidence in the round's `-claude.md` only. |
+| Valid, P0 / P1 / P2 | Fix it with the smallest cohesive change, once the round's second looks and rebuttal below are done. Add or extend a regression test that fails before the fix and passes after. |
+| Valid, P3 | Do not fix unasked. Put it on the "awaiting your decision" list in the final report. When Codex labeled it P0 to P2, this is an override: take the second look below first. |
+| Invalid | Reject only with concrete evidence: a code path, test output, or primary documentation. A rejection is an override: take the second look below first, and the rebuttal below when Codex labeled the finding P0 or P1, before you record it. Add a row to `docs/reviews/decisions.md` in the repository; if it is missing, create it from the setup skill's template, `${CLAUDE_PLUGIN_ROOT}/skills/setup/templates/repo-decisions.md`; when that path does not resolve because the skill was installed by hand, outside a plugin, create it with a `# Review decisions` heading and the table header `\| Date \| Finding \| Severity claimed \| Decision \| Evidence \|`. With `--report-only`, do not touch the repository: keep the rejection and its evidence in the round's `-claude.md` only. |
 | Outside the task's scope | Do not implement. List it for the user as a follow-up. |
 | Already recorded in `docs/reviews/decisions.md` | Do not fix. Mark it "disputed twice" and escalate to the user in the final report. |
 
@@ -386,18 +403,201 @@ Requirement findings follow the same table with these specifics:
 - Never edit the task file to make a finding disappear. It changes only to record a
   user decision or to correct a factual claim about the code.
 
+### Second look at an override
+
+An override is a finding you reject, or one that Codex labeled P0 to P2 and you label
+P3, unless you decide it `outside scope` or it is `disputed twice`: your judgment on
+your own work, against the reviewer's. Before you record one, another Claude agent
+checks the finding in a fresh context. Do this for each override, also with
+`--report-only`, and before any rebuttal.
+
+Decide every finding of the round, take each second look, and run the rebuttal before
+you write anything in the repository: no fix and no row of
+`docs/reviews/decisions.md`. The agent and the rebuttal judge the code on disk, which
+must still be the code the review saw: a fix made first can close a finding that was
+valid, and the rejection would then be recorded in place of the fix. So when the
+second looks are done, and before the rebuttal or any write, run `fingerprint.sh` as
+step 4 does: it must print the fingerprint that the round's command printed at its
+end. If it differs, the repository changed after the review: stop the loop, show
+`git status --short`, and tell the user, as step 4 does.
+
+Call the Agent tool once per override, with `subagent_type` set to
+`codex-review-loop:finding-checker`, the plugin's agent that can only read files. Its
+prompt holds these parts and nothing else:
+
+1. `Repository root:` and `REPO_ROOT`, then `Scope of the review:` and the round's
+   target, in the words a rebuttal gives it below (`<target of the round>`). Except in
+   paths mode and in an audit, whose target is the files as they are on disk, when
+   some changes are staged, that is, when
+   `git -C "$REPO_ROOT" diff --cached --name-only` prints a path, add the line
+   `The staged version of <path> differs from the file on disk.` for each path where
+   the two differ, whichever files the finding names: each path that
+   `git -C "$REPO_ROOT" diff --name-only` or
+   `git -C "$REPO_ROOT" ls-files --others --exclude-standard` prints, and each path
+   that `git -C "$REPO_ROOT" diff --cached --name-only --no-renames --diff-filter=D`
+   prints and that is still on disk, such as a file removed from the index and ignored
+   since. A finding about what is staged can turn on any of them. Run from the root,
+   these commands name each file by its path from the root.
+2. `Finding:` and the finding as Codex wrote it in the round's `-codex.md`: its title
+   with the path and the line range that follow it, and its body, without its label
+   `[P0]` to `[P3]`.
+3. `Severity scale:` and the `<severity>` section of
+   `${CLAUDE_SKILL_DIR}/review-prompt.md`, copied unchanged.
+4. Only for a requirement finding in a run with a task file: `The user's request:` and
+   the task file's `## Request (verbatim)` and `## Acceptance criteria` sections,
+   copied unchanged, and of each decision marked `[user, <date>]`, that mark and the
+   user's quoted words only. The text after the quote is yours: it says what you made
+   of the user's words.
+5. Only when `instruction-changes.sh` listed files for the round:
+   `Instruction files the change edits:` and the lines it printed, then, for each
+   listed `AGENTS.md`, `AGENTS.override.md`, or `CLAUDE.md` that the change does not
+   add, `Committed version of <path>:` and what `git show <base>:<path>` prints, with
+   the base it printed, copied unchanged. The agent starts without your and the
+   project's `CLAUDE.md` files, and the files on disk hold the change's own version of
+   these rules.
+
+Add nothing else: not your decision, your evidence, Codex's label, the handoff, or
+your own decisions. The agent judges the finding, not your argument about it, and a
+checker that sees the implementer's reasoning tends to agree with it. Do not reword or
+shorten the finding either, even where it quotes the handoff, a decision, or a row of
+`docs/reviews/decisions.md`: rewording would let you reshape the claim the agent
+judges. The agent gives such quoted text no weight as evidence.
+
+The first line of its answer must be `Instruction files: none`. Any other first line
+means that your or the project's instruction files reached the agent: at its start, as
+under a Claude Code older than 2.1.271, which ignores `omitClaudeMd`, or while it
+worked in a folder that has its own `CLAUDE.md` or rules, which Claude Code adds even
+with `omitClaudeMd`; or that a line of your records reached it, from
+`docs/reviews/decisions.md` or this loop's log folder, as a search can bring one. Write
+`not run` for its second look; the final report says why.
+Otherwise read the rest. The answer is complete when it has the `Verdict:`,
+`Severity:`, and `Evidence:` lines of the agent's shape, its severity fits its verdict,
+`none` for `does not hold` and P0 to P3 for `holds`, and its evidence names at least
+one place in the code as `path:line`. A complete answer decides the second look:
+
+| Override | The second look agreed | It disagreed |
+|---|---|---|
+| Rejected | `does not hold` | `holds`, at any severity |
+| Labeled P3 | `does not hold`, or `holds` at `P3` | `holds` at P0 to P2 |
+
+Any other answer, `cannot tell` or one that is not complete among them, is
+`could not tell`.
+
+- Agreed, or could not tell: keep the override, and take the rebuttal below when it
+  applies. The final report names each `could not tell`.
+- Disagreed: open the files and lines the agent names and trace its code path. If its
+  evidence changes your judgment, decide again by the table above: fix a finding that
+  holds at P0 to P2 with a regression test, and list one that holds at P3 when the
+  agent found P3 too. A new decision that the agent's answer contradicts is still an
+  override against it: a rejection, or P3 for a finding it found at P0 to P2. If you
+  hold such an override, the decision is `escalated`: do not fix it, add no row to
+  `docs/reviews/decisions.md`, put the agent's evidence beside yours in the triage
+  file, and stop the loop after this round. An escalated finding gets no rebuttal: the
+  user decides it.
+
+When the Agent tool does not offer `codex-review-loop:finding-checker`, as when the
+skill was installed by hand outside the plugin, or when the call fails, keep the
+override and write `not run` for its second look; the final report says so. Never ask
+another agent instead: only this one is limited to reading.
+
+### Rebuttal of a rejected P0 or P1
+
+A finding that Codex labeled P0 or P1 and that is still rejected after its second look
+gets one rebuttal before its row in `docs/reviews/decisions.md` is written. A round
+has at most one rebuttal: run it after every finding of the round is triaged, covering
+each such finding. It does not count toward `--rounds`. With `--report-only` there is
+none; write `not run` for the rebuttal of each such finding.
+
+1. Build its prompt as step 4 builds a round's. `{{SCOPE}}` is the rebuttal scope
+   below. `{{FOCUS}}` and `{{TASK}}` are the texts that the round's own prompt,
+   `$LOG_DIR/$RUN-round$N-prompt.md`, held in their places: the focus after
+   `Extra focus from the user:`, and the task between `<task>` and `</task>`.
+   `{{INSTRUCTIONS}}` is what `instruction-changes.sh` printed for the round,
+   unchanged. The rebuttal judges what the review judged: a change you made to the
+   task file since, such as a corrected handoff claim, goes into your evidence.
+   Write the prompt to `$LOG_DIR/$RUN-round$N-rebuttal-prompt.md`.
+2. Run it as step 4 runs a round, under the same rules: record the fingerprint first,
+   get the tool flags again, add what `--model` and `--effort` add to a round, and
+   write `round$N-rebuttal` where the command's three file names have `round$N`. The
+   fingerprint recorded first must equal the one the round's command printed at its
+   end, as must the one the rebuttal's command prints: the rebuttal judges the code
+   the review saw.
+3. Read its facts with `round-facts.sh` as step 4 does. It reads the newest log, so
+   its `log=` line must name `$RUN-round$N-rebuttal-codex.log`. Show the rebuttal's
+   review verbatim, as step 5 shows a round's.
+4. The rebuttal has failed when step 4 would stop it as a failed review, when it exits
+   non-zero, when one of its fingerprints differs from the round's, when the `log=`
+   line names another log, or when its review file is missing or holds nothing but
+   whitespace: there is then no answer to read. Mark each finding it covered
+   `escalated` and stop the loop.
+
+Rebuttal (substitute the round's target, and write one numbered entry per finding):
+
+```text
+Target: a rebuttal, not a new review. Your last review of this change reported the
+findings below, and the implementer rejected each of them with the evidence that
+follows it. The change is the one that review covered: <target of the round>.
+For each finding, decide whether it still holds, by checking the finding and the
+evidence against the version of the code it is about: the file on disk, or the
+staged version that `git diff --cached` shows, where the finding is about that one.
+A change given as files as they are on disk is judged on disk, whatever version a
+finding names.
+- The implementer of the change wrote the evidence. It is a claim to verify, not a
+  fact: do not defer to it.
+- In your summary, name each finding by its number and say `withdrawn` or
+  `maintained`. Withdraw a finding only when you verified that the evidence is right:
+  in the code, in the output of a command you ran, in primary documentation, or, for
+  what was asked, in a decision of the task that quotes the user.
+- Report each finding you maintain again, as a finding with its label, and answer the
+  evidence in its body with the code path or the output that shows it still holds.
+- Report nothing else: apply <requirement_check> and <rubric> only as far as they
+  bear on these findings.
+
+<N>. <the finding as Codex wrote it: label, title, path and line range, and body>
+Implementer's evidence: <the evidence in its row of the findings table>
+```
+
+`<target of the round>`, by the round's mode:
+
+- Uncommitted: `all uncommitted changes in this repository`.
+- Branch: `all changes on the current branch since <base>, its merge base with <ref>,
+  plus any uncommitted changes`, with the round's `<base>` from step 4, which stays put
+  if `<ref>` moves before the rebuttal.
+- Paths, and an audit: `the files and folders <paths>, as they are on disk. Defects
+  that already exist in them are in scope, and a finding does not have to overlap a
+  recent change: the rules in your built-in guidelines against flagging existing
+  bugs, and for findings that overlap the diff, do not apply`. The paths scope text
+  of step 4 says the same to a round.
+
+Read the answer for each finding:
+
+- `withdrawn`: the summary says so, and the review does not report the finding again.
+  Record the rejection, and say in its `docs/reviews/decisions.md` row what the second
+  look and the rebuttal found.
+- `maintained`: any other answer. Trace the reviewer's answer as you traced the
+  finding. If it shows that the finding holds, decide again by the table above;
+  otherwise the decision is `escalated`, and the loop stops after this round.
+
+A finding that the rebuttal reports without being asked is not triaged in this round:
+list it in the triage file and in the final report as reported by the rebuttal.
+
+### The triage file
+
 With `--report-only`, the repository is not written at all: no fixes and no
-`docs/reviews/decisions.md` row. Triage into the round's `-claude.md` as usual, then
-go to the final report after one round.
+`docs/reviews/decisions.md` row. Triage into the round's `-claude.md` as usual, with
+the second look and without a rebuttal, then go to the final report after one round.
 
 Write `<RUN>-round<N>-claude.md` in the shape of
 [triage-template.md](triage-template.md) (`${CLAUDE_SKILL_DIR}/triage-template.md`),
-and keep its headings, table columns, and decision words as they are. It has three
+and keep its headings, table columns, and decision words as they are. It has four
 parts:
 
 - The findings table: one row per finding, with Codex's label, your label, one
   decision word, the evidence, and the proof. Proof is the test with its failing and
   passing result, or the reason no test is possible.
+- The overrides table: one row per finding you rejected or moved from P0-P2 to P3
+  before its second look, also when the second look changed your decision, with what
+  the second look and the rebuttal found.
 - The requirement checklist: one row per acceptance criterion, with its state and
   who verified that state: the reviewer, the implementer, or nobody. Take `reviewer`
   only from what the review says it checked, and only for a criterion you have not
@@ -408,7 +608,8 @@ parts:
   step 4, the web search mode, whether `--allow-tools` was given, and the four hashes
   of the round's fingerprint. The version is the `version` in
   `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`; write `unknown` when that path
-  does not resolve because the skill was installed by hand.
+  does not resolve because the skill was installed by hand. A round with a rebuttal
+  has a second judge record, of the rebuttal.
 
 ## 7. Close the round
 
@@ -420,9 +621,9 @@ parts:
   fixing in the round's `-claude.md` instead.
 - Start the next round when something was fixed and `N` is below `--rounds`.
 - Stop when the review reported no P0-P2 findings, when nothing changed this round,
-  when `N` reached `--rounds`, when a finding was disputed twice, when Codex failed,
-  when the round's facts in step 4 made the review a failed one, or when the user
-  interrupts.
+  when `N` reached `--rounds`, when a finding was disputed twice or escalated, when
+  Codex failed, when the round's facts in step 4 made the review a failed one, when
+  the rebuttal failed, or when the user interrupts.
 
 Never commit, push, tag, or run release scripts as part of the loop.
 
@@ -441,18 +642,22 @@ Then write `$LOG_DIR/$RUN-summary.json` with the Write tool, in the shape of
 (`${CLAUDE_SKILL_DIR}/summary-template.json`): the same keys, each `<...>` replaced by
 one of the values it names. It has one entry per round that ran, with its seconds, its
 fingerprint, the lines `round-facts.sh` printed, and one entry per row of that round's
-findings table: tag, both labels, and decision word, copied from the triage file.
-`reviewed` is false, and the findings empty, for a round stopped as failed or without a
-review. `unverified` is true when the review said it could not run or verify something.
-Put no text of a finding into it. Without a task file, `task_file` is false, both hashes
-are `none`, and the checklist is empty. Write it for every run that reached step 4.
+findings table: tag, both labels, and decision word, copied from the triage file, and
+what its second look and its rebuttal found, from its row of the overrides table, or
+`not run` for each when it has no row there or one did not run. `reviewed` is false,
+and the findings empty, for a round whose review failed or did not run. A round whose
+rebuttal failed keeps `reviewed` true and its findings: each one the rebuttal covered
+is `escalated`, with `rebuttal` `failed`. `unverified` is true when the review said it
+could not run or verify something. Put no text of a finding into it. Without a task
+file, `task_file` is false, both hashes are `none`, and the checklist is empty. Write
+it for every run that reached step 4.
 
 Lead with one verdict: the first row of this table that fits the run.
 
 | The run ended like this | Verdict |
 |---|---|
-| The last round gave no usable review: Codex exited with an error or was stopped, the facts in step 4 made the review a failed one, a fingerprint failed or differed, or the tool flags could not be built. | `review failed` |
-| A finding's decision is `not fixed` or `disputed twice`: a valid P0-P2 finding that belongs to the task is still open. A finding decided as `outside scope` does not count here. | `open findings` |
+| The last round gave no usable review: Codex exited with an error or was stopped, the facts in step 4 made the review a failed one, a fingerprint failed or differed, or the tool flags could not be built. Its rebuttal failing counts the same. | `review failed` |
+| A finding's decision is `not fixed`, `disputed twice`, or `escalated`: a valid P0-P2 finding that belongs to the task is still open, or the user has to decide whether one is valid. A finding decided as `outside scope` does not count here. | `open findings` |
 | Code changed after the last review that completed: fixes were made in the last allowed round, or the loop was stopped before another round. | `fixes not re-reviewed` |
 | No row above fits, and something stands unverified: a checklist row that does not say `reviewer`, something the review says it could not check, a file listed by the mention check in step 5, an implementer override, or a finding decided as `outside scope`. | `clean with unverified items` |
 | No row above fits. The last review saw the final code and reported no P0-P2 finding, the reviewer verified every criterion, and nothing was overridden. | `verified` |
@@ -464,20 +669,29 @@ say so beside the verdict.
 
 Then, in this order:
 
-1. Implementer overrides: every finding you rejected, with its evidence and its row
-   in `docs/reviews/decisions.md`, and every finding that Codex labeled P0 to P2 and
-   you labeled P3. These are your judgments on your own work, and no reviewer has
-   confirmed them. Write "Implementer overrides: none" when there are none.
+1. Implementer overrides: every row of the rounds' overrides tables, also those whose
+   decision the second look or the rebuttal changed, each with both outcomes of its
+   row, the second look and the rebuttal, `not run` and `failed` included. First each
+   `escalated` finding, with Codex's evidence, the second look's, the rebuttal's when
+   it answered, and yours: the user decides it. Then each other row, with what you
+   decided before the second look, the decision that stands, its evidence, and its row
+   in `docs/reviews/decisions.md` when it stands rejected. These are your judgments on
+   your own work. A second look that agreed is another Claude agent's view, not the
+   reviewer's; only a finding withdrawn in a rebuttal has the reviewer's agreement.
+   Write "Implementer overrides: none" when no round has a row.
 2. Rounds table: round, model, findings by severity, fixed, rejected, deferred, and
    what the reviewer used: shell commands that ran, web searches, other tool calls.
    Say which tools the run allowed: the default, `--web <mode>`, or `--allow-tools`.
+   List a rebuttal under its round, with what it used and how each of its findings
+   ended.
 3. Requirement checklist: each acceptance criterion with its final state and who
    verified that final state, and whether the change stayed within the request. A
    criterion fixed after the last review is not verified by the reviewer. If no task
    file was used, say so.
 4. Files changed, tests added, and what each test proves.
 5. Checks run with exact pass, fail, or skip results.
-6. P3 items awaiting the user's decision.
+6. P3 items awaiting the user's decision, and each finding that a rebuttal reported
+   without being asked.
 7. Log paths under `$LOG_DIR` and the `codex resume <session-id>` command for the
    last round.
 8. State that nothing was committed, and remind the user to read the diff before
@@ -485,7 +699,8 @@ Then, in this order:
 
 ## Guardrails
 
-- Codex reviews; it never edits. Only Claude edits.
+- Codex reviews, and the agent of the second look reads; neither edits. Only Claude
+  edits.
 - The reviewer gets its sandboxed shell and the tools built into Codex. The loop also
   asks Codex for web search, except with `--web off`; a review goes ahead without it
   when Codex does not offer it. Connectors other than web search, plugins, and the MCP

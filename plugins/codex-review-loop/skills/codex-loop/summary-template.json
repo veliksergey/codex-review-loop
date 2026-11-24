@@ -27,7 +27,9 @@
           "tag": "<criterion, beyond request, handoff, or none>",
           "reviewer_label": "<P0, P1, P2, P3, or none>",
           "final_label": "<P0, P1, P2, or P3>",
-          "decision": "<fixed, not fixed, listed for the user, rejected, outside scope, or disputed twice>"
+          "decision": "<fixed, not fixed, listed for the user, rejected, outside scope, disputed twice, or escalated>",
+          "second_look": "<not run, agreed, disagreed, or could not tell>",
+          "rebuttal": "<not run, withdrawn, maintained, or failed>"
         }
       ]
     }

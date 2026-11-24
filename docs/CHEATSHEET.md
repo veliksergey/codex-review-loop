@@ -16,8 +16,9 @@ never commits. Full guide: [GUIDE.md](GUIDE.md).
    skip it. If the change edits `AGENTS.md`, `CLAUDE.md`, a `.codex` folder, or
    `docs/reviews/decisions.md`, Claude names those files before each round; the
    reviewer is told to apply their committed versions.
-5. Read the rounds and the final report. It starts with a verdict and with the
-   findings Claude overrode. Decide on the P3 items.
+5. Read the rounds and the final report. It starts with a verdict, then any finding
+   escalated to you, then the findings Claude overrode. Decide on the escalated
+   findings and the P3 items.
 6. Read the diff, then commit yourself.
 
 ## Commands
@@ -64,11 +65,15 @@ separate modes; the other options combine with either.
 | P1 | Definite bug or weakness, or an unmet criterion | Fixed, with test |
 | P2 | Probable bug, missing guard or test, contract break, false handoff claim | Fixed, with test |
 | P3 | Improvement or style | Listed for your decision |
-| Rejected | Disproved with evidence | Row in `docs/reviews/decisions.md`, checked once by the next review |
+| Rejected | Disproved with evidence, after a second look, and for a P0 or P1 a rebuttal | Row in `docs/reviews/decisions.md`, checked once by the next review |
+| Escalated | An override that the second look or the rebuttal contradicts, and Claude still holds | Escalated to you; no row is written |
 | Disputed twice | Same finding after a rejection | Escalated to you |
 
 Codex's label is a proposal and Claude sets the final one. In tests the reviewer rated
 P0 defects P1. A decision in the task file explains intent; it does not excuse a defect.
+Before Claude rejects a finding or moves it below P2, the plugin's read-only agent
+checks the finding without seeing Claude's reasoning; a rejected P0 or P1 also goes
+back to Codex once, for a rebuttal.
 
 ## Verdict
 
@@ -76,8 +81,8 @@ The final report starts with one of these. The first that fits is used.
 
 | Verdict | Meaning | What to do |
 |---|---|---|
-| `review failed` | The last round gave no usable review | Fix the cause the report names, rerun |
-| `open findings` | A valid P0-P2 finding of the task is not fixed, or a finding is disputed twice | Read them and decide |
+| `review failed` | The last round gave no usable review, or its rebuttal failed | Fix the cause the report names, rerun. When only the rebuttal failed, the round's findings stand: decide the ones it escalated to you |
+| `open findings` | A valid P0-P2 finding of the task is not fixed, or a finding is disputed twice or escalated | Read them and decide |
 | `fixes not re-reviewed` | No review has seen the last fixes | Rerun, or read the fixes yourself |
 | `clean with unverified items` | Nothing open, but something rests on Claude alone: an unchecked criterion, a rejected or downgraded finding, a defect left as outside the task | Read the listed items |
 | `verified` | The last review saw the final code and found nothing to fix; the reviewer checked every criterion; nothing was overridden | Read the diff, commit |

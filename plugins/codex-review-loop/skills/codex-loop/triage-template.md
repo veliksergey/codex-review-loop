@@ -31,6 +31,30 @@ Decision is exactly one of:
   that disproves it.
 - `outside scope`: valid, but not part of this task.
 - `disputed twice`: already recorded in `docs/reviews/decisions.md`.
+- `escalated`: an override that the second look or the rebuttal contradicted and that
+  you still hold, or one whose rebuttal failed. Not fixed and not recorded in
+  `docs/reviews/decisions.md`: the user decides it.
+
+## Overrides
+
+| # | Override | Second look | Its answer | Rebuttal | The reviewer's answer |
+|---|---|---|---|---|---|
+| 1 | <rejected, or P3> | <not run, agreed, disagreed, or could not tell> | <the agent's verdict and severity, and the code it named> | <not run, withdrawn, maintained, or failed> | <what the rebuttal said of this finding, or why none ran> |
+
+Write "None." in place of the table when no finding was overridden.
+
+One row per finding that you rejected, or that Codex labeled P0 to P2 and you labeled
+P3 without deciding it `outside scope` or `disputed twice`, before its second look,
+numbered as in the findings table. Keep the row when the
+second look or the rebuttal changed your decision; the findings table holds the
+decision that stands. Override is what you decided before the second look. Second look
+is `agreed`, `disagreed`, or `could not tell` by the table in step 6 of the skill, and
+`not run` when the agent was not available. Rebuttal is `not run` for a finding that
+gets none: one that Codex labeled P2 or P3, one moved to P3, one escalated after its
+second look, and every finding of a `--report-only` run.
+
+Below the table, one line for each finding that the round's rebuttal reported without
+being asked, as the rebuttal wrote it.
 
 ## Requirement checklist
 
@@ -63,3 +87,7 @@ web=<cached, live, or off>
 tools=<default, or allowed>
 fingerprint=<the four hashes of this round, separated by spaces>
 ```
+
+<when the round ran a rebuttal only: a section "## Rebuttal judge record" with the
+same keys in the same kind of block, for the rebuttal: the lines round-facts.sh
+printed for its log, and its own fingerprint>

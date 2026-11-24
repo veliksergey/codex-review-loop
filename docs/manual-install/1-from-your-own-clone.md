@@ -49,7 +49,7 @@ claude plugin details codex-review-loop@codex-review-loop
 ```
 
 This lists what the plugin adds. Expect `Skills (2)  codex-loop, setup`,
-`Hooks (0)`, and `MCP servers (0)`.
+`Agents (1)  finding-checker`, `Hooks (0)`, and `MCP servers (0)`.
 
 ## Take a new version
 

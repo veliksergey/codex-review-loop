@@ -5,6 +5,70 @@ installed copy only when the version in `plugins/codex-review-loop/.claude-plugi
 changes; see the README's Update section. Documentation changes that need no update
 are listed at the end.
 
+## 0.7.0 — 2026-11-23
+
+A second look at each finding Claude overrides, and a rebuttal from Codex before a
+finding it labeled P0 or P1 is rejected: item C2 of the improvement plan.
+
+- Before Claude records an override, a rejection or a P0-P2 finding labeled P3 that is
+  neither outside the task nor disputed twice, the new agent `finding-checker` checks
+  the finding in a fresh context. Claude decides every finding of a round before it
+  writes anything in the repository, and the fingerprint must show the files the review
+  saw, so that the agent judges that code. The agent comes with the plugin, has only
+  `Read`, `Grep`, and `Glob`, and starts without your `CLAUDE.md` files, which Claude
+  Code would otherwise load into it (observed on 2026-11-23); managed policy files that
+  an organization sets still load. That takes Claude Code 2.1.271 or later, and a
+  folder's own `CLAUDE.md` or rules still reach the agent when it works there: the agent
+  says whether any of these reached it, and when one did, its second look counts as not
+  run. It gets the finding as Codex wrote it, with its path and lines but without its
+  label, the scope of the review, the severity scale, the committed version of each
+  instruction file the change edits, and for a requirement finding your request,
+  criteria, and decisions; never Claude's decision or evidence, and it neither opens nor
+  searches `docs/reviews/decisions.md`; a second look that a line of it reached does not
+  count. It answers whether the finding holds and how severe it is, and names the code
+  it read; an answer without these counts as one that could not tell. When it disagrees,
+  Claude traces its evidence and decides again, and a valid finding is fixed; if Claude
+  still holds its override, the finding is `escalated`: not fixed, not recorded as
+  rejected, and left to you, and the loop stops after that round.
+- A finding Codex labeled P0 or P1 that is still rejected after its second look goes
+  back to Codex once before its row in `docs/reviews/decisions.md` is written: at most
+  one more `codex exec review` per round, under every rule of a round, with the review
+  prompt, the round's base, focus, and instruction files, and a scope that holds the
+  findings and Claude's evidence, and it checks the version of the code a finding is
+  about, staged or on disk. A finding Codex withdraws is recorded as rejected; one it
+  maintains is decided again or escalated. A rebuttal that fails, that finds the files
+  changed since the review, whose facts come from another log, or whose review is
+  missing or blank stops the loop as a failed review, and its findings are escalated. A
+  rebuttal does not count toward `--rounds`, and `--report-only` runs none. In paths
+  mode and in an audit, it keeps the rule that existing defects are in scope. In branch
+  mode, a round resolves its merge base once, and its prompt, its second looks, and its
+  rebuttal all compare with that commit. Observed once on 2026-11-23, in a scratch
+  repository of synthetic code: Codex withdrew the finding whose rejection was right and
+  maintained the one whose evidence was false, and reported nothing else.
+- `escalated` is a seventh decision word, and it makes the verdict `open findings`.
+  The triage file has an `## Overrides` table and, after a rebuttal, the rebuttal's
+  judge record. Each finding in the run summary has `second_look` and `rebuttal`, and
+  a round whose rebuttal failed keeps its findings there. The final report lists
+  escalated findings first, then every other row of the overrides tables, also one
+  whose decision the second look or the rebuttal changed.
+- A skill installed by hand, outside the plugin, has no agent: the loop records each
+  override as before and reports that its second look did not run.
+- `tests/loop_stats.py` accepts the new word and keys, counts how second looks and
+  rebuttals ended, and names a summary whose verdict contradicts an escalated finding
+  or a failed rebuttal, that has either before its last round, whose failed rebuttal
+  leaves a finding withdrawn, maintained, or not escalated, whose decision on a finding
+  contradicts its second look or its rebuttal, or that gives a finding one of the two
+  keys without the other; summaries of earlier versions, which hold neither, still
+  read. A new test, `tests/finding-checker.test.sh`, fails when the agent can gain a
+  tool or its `CLAUDE.md` files, also through front matter that YAML cannot read, or
+  when the skill's call names another agent, and `tests/rebuttal-facts.test.sh`
+  covers how the facts of a rebuttal are read.
+- The skill tells Claude to read it again in full when the copy in its context ends
+  early, as after a compaction, which can keep only its start (observed on
+  2026-11-23): the rules for findings, overrides, and the final report come late in it.
+- The READMEs, the guide, the cheat sheet, and the manual install pages describe the
+  agent and the rebuttal, and what a rebuttal sends to OpenAI.
+
 ## 0.6.3 — 2026-11-23
 
 Wording only; nothing the loop runs changed.

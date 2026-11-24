@@ -25,6 +25,10 @@ Claude Code picks up personal skills from `~/.claude/skills`, so this adds the
 `/codex-loop` command. If you also have the plugin installed, this personal copy
 takes the short name `/codex-loop`; uninstall one of the two to avoid confusion.
 
+A personal skill comes without the plugin's agent, so this path has no second look
+at the findings Claude overrides. The loop records each override as before and says
+in its report that the second look did not run.
+
 ## 3. Paste the rules into your config files
 
 This step was not run end to end when this page was written. The blocks are the
