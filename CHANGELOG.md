@@ -356,6 +356,12 @@ template changes. Update to get the fixed check.
 
 ## Documentation only (no update needed)
 
+- 2026-11-25: `docs/PARALLEL_TASKS_PLAN.md` plans a feature that is not built: several
+  tasks in one repository at the same time, each in its own worktree folder and
+  branch, each reviewed by the loop and merged into the branch checked out in the
+  main folder, usually `dev`: on its own when the task ends clean, otherwise after
+  the user's OK. It records the maintainer's decisions and the experiments to run
+  before any code. `docs/TODO.md` lists it.
 - 2026-11-24: `docs/TODO.md` lists two small follow-ups of 0.7.0 under "Smaller
   points": what both READMEs say about a Claude Code older than 2.1.271, and two cases
   of `tests/round-facts.test.sh` that expect hashes written out for SHA-1.

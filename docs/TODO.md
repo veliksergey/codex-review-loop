@@ -60,6 +60,17 @@ Each item is described here so that it can be read without the plan.
   defect cases of the corpus, run a pass with a focus. Measure the verified defects
   each pass adds. It decides C3.
 
+## Parallel tasks
+
+- [ ] **Several tasks at once in one repository.** `docs/PARALLEL_TASKS_PLAN.md` plans
+  it: each task in its own worktree folder and branch beside the main folder, worked
+  by a background Claude Code session, reviewed by the loop, and merged into the
+  branch checked out in the main folder, usually `dev`: on its own when the task ends
+  clean, otherwise after the user's OK, with one table that shows every task's state.
+  Its section 10 records the maintainer's decisions. Next come the six experiments
+  of its phase 0, in the order the plan gives, stopping at the first failure; they
+  start at most four Codex runs on the maintainer's allowance, three of them reviews.
+
 ## Release C
 
 Each item is adopted only when its condition holds.
